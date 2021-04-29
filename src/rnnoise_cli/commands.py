@@ -1,10 +1,9 @@
-from typing import Union
-
+import os
 import click
-from .pulse import PulseInterface
-from .exceptions import NoneLoadedException
+from .pulse import PulseInterface, NoneLoadedException
 from importlib.metadata import version
 import importlib.resources
+import configparser
 
 # ANSI escape sequences
 ANSI_COLOR_GREEN = "\u001b[32m"
@@ -13,6 +12,8 @@ ANSI_COLOR_BLUE = "\u001b[34m"
 ANSI_UNDERLINE = "\u001b[4m"
 ANSI_NO_UNDERLINE = "\u001b[24m"
 ANSI_STYLE_RESET = "\u001b[0m"
+
+CONFIG_FILE_PATH = os.path.join(os.environ["HOME"], ".config", "rnnoise_cli", "rnnoise_cli.conf")
 
 
 class AliasedGroup(click.Group):
@@ -28,10 +29,24 @@ class AliasedGroup(click.Group):
         return super().get_command(ctx, cmd_name)
 
 
+class CtxData:
+    def __init__(self, config: configparser.ConfigParser, verbose: bool):
+        self.config = config
+        self.verbose = verbose
+
+
 @click.group(cls=AliasedGroup)
 @click.version_option(version=version("rnnoise-cli"))
-def rnnoise():
-    pass
+@click.option("--verbose", "-v", is_flag=True,
+              help="Print more.")
+@click.pass_context
+def rnnoise(ctx, verbose: bool):
+    config = configparser.ConfigParser()
+    # load defaults
+    config.read_string(importlib.resources.read_text("rnnoise_cli.data", "rnnoise_cli.conf"))
+    # load actual config
+    config.read(CONFIG_FILE_PATH)
+    ctx.obj = CtxData(config, verbose)
 
 
 def echo_devices_pretty():
@@ -93,22 +108,28 @@ def prompt_until_valid_device(device: str = None):
             return prompt_until_valid_device()
 
 
-# TODO: maybe use a config file to let user store defaults (maybe using appdirs + configparser)
 @rnnoise.command()
-@click.option("--device", "-d", default=None, type=str,
+@click.option("--device", "-d", type=str,
               help="Input device name or number (see `rnnoise list`). Default: default input device.")
 @click.option("--rate", "-r", type=int,
               help="Microphone sample rate (in Hz). Default: auto.")
-@click.option("--control", "-c", default=50, type=int,
+@click.option("--control", "-c", type=int,
               help="Control level between 0 and 100. Default: 50.")
 @click.option("--no-prompts", "--no-interactive", is_flag=True,
               help="Don't prompt anything, use defaults for everything not provided.")
-@click.option("--verbose", "-v", is_flag=True,
-              help="Print more.")
-def activate(device: str, rate: int, control: int, no_prompts: bool, verbose: bool):
+@click.pass_obj
+def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: bool):
     """
     Activate the noise suppression plugin.
     """
+    activate_config = ctx.config["activate"]
+    if device is None:
+        device = activate_config.get("device", None)
+    if rate is None:
+        rate = activate_config.get("rate", None)
+    if control is None:
+        control = activate_config.get("control", None)
+
     if no_prompts:
         device = get_device_or_default(device)
     else:
@@ -126,20 +147,21 @@ def activate(device: str, rate: int, control: int, no_prompts: bool, verbose: bo
     if rate is None:
         rate = device.sample_spec.rate
 
-    if verbose:
+    if ctx.verbose:
         click.echo("Selected params:")
         click.echo(f"\t{ANSI_UNDERLINE}Device name:{ANSI_STYLE_RESET} {device.name}")
         click.echo(f"\t{ANSI_UNDERLINE}Sampling rate:{ANSI_STYLE_RESET} {rate}")
         click.echo(f"\t{ANSI_UNDERLINE}Control level:{ANSI_STYLE_RESET} {control}")
 
-    PulseInterface.load_modules(device.name, rate, control, verbose)
+    PulseInterface.load_modules(device.name, rate, control, ctx.verbose)
 
 
 @rnnoise.command()
 @click.option("--force", "-f", is_flag=True, default=False,
               help="Remove all modules of the types used by rnnoise-cli (module-loopback, module-null-sink, "
                    "module-ladspa-sink, module-remap-source). This could remove modules loaded by other applications.")
-def deactivate(force: bool):
+@click.pass_obj
+def deactivate(ctx: CtxData, force: bool):
     """
     Deactivate the noise suppression plugin.
     """
@@ -147,7 +169,7 @@ def deactivate(force: bool):
         PulseInterface.unload_modules_all()
     else:
         try:
-            PulseInterface.unload_modules()
+            PulseInterface.unload_modules(ctx.verbose)
         except NoneLoadedException:
             click.secho(f"No loaded modules found, try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you're sure.",
                         fg="red")

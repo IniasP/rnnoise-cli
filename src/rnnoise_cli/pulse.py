@@ -6,12 +6,15 @@ import click
 import pulsectl
 import contextlib
 import pickle
-from .exceptions import NoneLoadedException
 
 pulse = pulsectl.Pulse("rnnoise_cli")
 LADSPA_PLUGIN_PATH = os.path.join(sys.prefix, "rnnoise_cli", "librnnoise_ladspa.so")
 CACHE_PATH = os.path.join(os.environ["HOME"], ".cache", "rnnoise_cli")
 LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "loaded_modules.pickle")
+
+
+class NoneLoadedException(Exception):
+    pass
 
 
 class PulseInterface:
@@ -98,7 +101,7 @@ class PulseInterface:
         )
 
     @staticmethod
-    def unload_modules():
+    def unload_modules(verbose: bool):
         """
         Raises NoneLoadedException if it doesn't find anything to unload.
         """
@@ -114,6 +117,8 @@ class PulseInterface:
             for index in loaded:
                 try:
                     pulse.module_unload(index)
+                    if verbose:
+                        click.echo(f"Unloaded module {index}.")
                 except pulsectl.pulsectl.PulseOperationFailed:
                     # The module was already unloaded for some reason.
                     pass

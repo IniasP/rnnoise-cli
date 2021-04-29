@@ -1,2 +1,1 @@
-class NoneLoadedException(Exception):
-    pass
+
