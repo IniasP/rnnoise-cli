@@ -147,4 +147,9 @@ class PulseInterface:
 
     @staticmethod
     def rnn_is_loaded():
-        return any((s.name == "denoised" for s in pulse.source_list()))
+        try:
+            with open(LOADED_MODULES_PATH, "rb") as file:
+                loaded = pickle.load(file)
+                return loaded != []
+        except FileNotFoundError:
+            return False
