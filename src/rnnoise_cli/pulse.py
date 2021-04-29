@@ -40,9 +40,10 @@ class PulseInterface:
             f"rate={mic_rate} "
             "sink_properties=\"device.description='RNNoise Null Sink'\""
         )
+        null_sink_index = pulse.module_load("module-null-sink", null_sink_opts)
+        loaded.append(null_sink_index)
         if verbose:
-            click.echo(f"Loading module-null-sink with options: {null_sink_opts}")
-        loaded.append(pulse.module_load("module-null-sink", null_sink_opts))
+            click.echo(f"Loaded module-null-sink with index {null_sink_index} and options: {null_sink_opts}")
 
         ladspa_sink_opts = (
             "sink_name=mic_raw_in "
@@ -52,9 +53,10 @@ class PulseInterface:
             f"control={control_level} "
             "sink_properties=\"device.description='RNNoise LADSPA Sink'\""
         )
+        ladspa_sink_index = pulse.module_load("module-ladspa-sink", ladspa_sink_opts)
+        loaded.append(ladspa_sink_index)
         if verbose:
-            click.echo(f"Loading module-ladspa-sink with options: {ladspa_sink_opts}")
-        loaded.append(pulse.module_load("module-ladspa-sink", ladspa_sink_opts))
+            click.echo(f"Loaded module-ladspa-sink with index {ladspa_sink_index} and options: {ladspa_sink_opts}")
 
         loopback_opts = (
             f"source={mic_name} "
@@ -63,9 +65,10 @@ class PulseInterface:
             "source_dont_move=true "
             "sink_dont_move=true"
         )
+        loopback_index = pulse.module_load("module-loopback", loopback_opts)
+        loaded.append(loopback_index)
         if verbose:
-            click.echo(f"Loading module-loopback with options: {loopback_opts}")
-        loaded.append(pulse.module_load("module-loopback", loopback_opts))
+            click.echo(f"Loaded module-loopback with index {loopback_index} and options: {loopback_opts}")
 
         remap_source_opts = (
             "master=mic_denoised_out.monitor "
@@ -73,12 +76,11 @@ class PulseInterface:
             "channels=1 "
             "source_properties=\"device.description='RNNoise Denoised Microphone'\""
         )
+        remap_source_index = pulse.module_load("module-remap-source", remap_source_opts)
+        loaded.append(remap_source_index)
         if verbose:
-            click.echo(f"Loading module-remap-source with options: {remap_source_opts}")
-        loaded.append(pulse.module_load("module-remap-source", remap_source_opts))
+            click.echo(f"Loadied module-remap-source with index {remap_source_index} and options: {remap_source_opts}")
 
-        if verbose:
-            click.echo(f"Loaded modules: {loaded}")
         # Write loaded modules for proper unloading
         if not os.path.exists(CACHE_PATH):
             os.makedirs(CACHE_PATH)
