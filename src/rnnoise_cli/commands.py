@@ -15,6 +15,13 @@ ANSI_STYLE_RESET = "\u001b[0m"
 
 CONFIG_FILE_PATH = os.path.join(os.environ["HOME"], ".config", "rnnoise_cli", "rnnoise_cli.conf")
 
+CONFIG_DEFAULTS = {
+    "activate": {
+        # "device": omitted,
+        # "rate": omitted,
+        "control": "50"
+    }
+}
 
 class AliasedGroup(click.Group):
     """
@@ -43,7 +50,7 @@ class CtxData:
 def rnnoise(ctx, verbose: bool):
     config = configparser.ConfigParser()
     # load defaults
-    config.read_string(importlib.resources.read_text("rnnoise_cli.data", "rnnoise_cli.conf"))
+    config.read_dict(CONFIG_DEFAULTS)
     # load actual config
     config.read(CONFIG_FILE_PATH)
     ctx.obj = CtxData(config, verbose)
@@ -126,9 +133,9 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
     if device is None:
         device = activate_config.get("device", None)
     if rate is None:
-        rate = activate_config.get("rate", None)
+        rate = activate_config.getint("rate", None)
     if control is None:
-        control = activate_config.get("control", None)
+        control = activate_config.getint("control", None)
 
     if no_prompts:
         device = get_device_or_default(device)
@@ -138,7 +145,7 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
             exit()
         device = prompt_until_valid_device(device)
 
-    if not 0 <= control <= 100:
+    if control is None or not 0 <= control <= 100:
         control = 50
 
     if rate is not None and rate < 0:
