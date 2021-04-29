@@ -140,9 +140,6 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
     if no_prompts:
         device = get_device_or_default(device)
     else:
-        if PulseInterface.rnn_is_loaded() \
-                and not click.confirm("Seems like the plugin is already activated, continue anyway?", default=False):
-            exit()
         device = prompt_until_valid_device(device)
 
     if control is None or not 0 <= control <= 100:

@@ -32,6 +32,8 @@ class PulseInterface:
         try:
             with open(LOADED_MODULES_PATH, "rb") as file:
                 loaded = pickle.load(file)
+                if loaded:
+                    PulseInterface.unload_modules()
         except FileNotFoundError:
             loaded: List[int] = []
 
@@ -103,7 +105,7 @@ class PulseInterface:
         )
 
     @staticmethod
-    def unload_modules(verbose: bool):
+    def unload_modules(verbose: bool = False):
         """
         Raises NoneLoadedException if it doesn't find anything to unload.
         """
@@ -154,6 +156,10 @@ class PulseInterface:
 
     @staticmethod
     def rnn_is_loaded():
+        """
+        TODO: Currently unused. May be useful for a status command but should
+              make additional checks for whether the modules are actually loaded.
+        """
         try:
             with open(LOADED_MODULES_PATH, "rb") as file:
                 loaded = pickle.load(file)
