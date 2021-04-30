@@ -185,6 +185,7 @@ def deactivate(ctx: CtxData, force: bool):
     else:
         try:
             PulseInterface.unload_modules(ctx.verbose)
+            click.secho("Deactivated!", fg="green")
         except NoneLoadedException:
             click.secho(f"No loaded modules found, try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you're sure.",
                         fg="red")
