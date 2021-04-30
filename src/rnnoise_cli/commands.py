@@ -161,6 +161,9 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
 
     PulseInterface.load_modules(device.name, rate, control, ctx.verbose)
 
+    if PulseInterface.rnn_is_loaded():
+        click.secho("Activated!", fg="green")
+
 
 @rnnoise.command()
 @click.option("--force", "-f", is_flag=True, default=False,
@@ -197,6 +200,17 @@ def license_():
     notice = importlib.resources.read_text("rnnoise_cli.data", "license_info.txt")
     click.echo(notice)
     exit()
+
+
+@rnnoise.command()
+def status():
+    """
+    Show whether the LADSPA plugin is loaded.
+    """
+    if PulseInterface.rnn_is_loaded():
+        click.secho("The plugin is loaded.", fg="green")
+    else:
+        click.secho("The plugin is not loaded.", fg="red")
 
 
 ALIASES = {

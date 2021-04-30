@@ -157,12 +157,15 @@ class PulseInterface:
     @staticmethod
     def rnn_is_loaded():
         """
-        TODO: Currently unused. May be useful for a status command but should
-              make additional checks for whether the modules are actually loaded.
+        Check whether the plugin is loaded.
+        This is more of a heuristic than something dependable.
+        Checks if the pickle contains loaded modules and if a source with name "denoised exists".
+        The latter check is useful because after a reboot while activated, the modules are reset,
+        which would lead to a module being present in the pickle file but not actually activated.
         """
         try:
             with open(LOADED_MODULES_PATH, "rb") as file:
                 loaded = pickle.load(file)
-                return loaded != []
+                return loaded != [] and any(s.name == "denoised" for s in pulse.source_list())
         except FileNotFoundError:
             return False
