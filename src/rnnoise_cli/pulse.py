@@ -38,7 +38,7 @@ class PulseInterface:
             loaded: List[int] = []
 
         null_sink_opts = (
-            "sink_name=mic_denoised_out "
+            "sink_name=rnnoise_mic_denoised_out "
             f"rate={mic_rate} "
             "sink_properties=\"device.description='RNNoise Null Sink'\""
         )
@@ -48,8 +48,8 @@ class PulseInterface:
             click.echo(f"Loaded module-null-sink with index {null_sink_index} and options: {null_sink_opts}")
 
         ladspa_sink_opts = (
-            "sink_name=mic_raw_in "
-            "sink_master=mic_denoised_out "
+            "sink_name=rnnoise_mic_raw_in "
+            "sink_master=rnnoise_mic_denoised_out "
             "label=noise_suppressor_mono "
             f"plugin=\"{LADSPA_PLUGIN_PATH}\" "
             f"control={control_level} "
@@ -62,7 +62,7 @@ class PulseInterface:
 
         loopback_opts = (
             f"source={mic_name} "
-            "sink=mic_raw_in "
+            "sink=rnnoise_mic_raw_in "
             "channels=1 "
             "source_dont_move=true "
             "sink_dont_move=true"
@@ -73,8 +73,8 @@ class PulseInterface:
             click.echo(f"Loaded module-loopback with index {loopback_index} and options: {loopback_opts}")
 
         remap_source_opts = (
-            "master=mic_denoised_out.monitor "
-            "source_name=denoised "
+            "master=rnnoise_mic_denoised_out.monitor "
+            "source_name=rnnoise_denoised "
             "channels=1 "
             "source_properties=\"device.description='RNNoise Denoised Microphone'\""
         )
@@ -159,13 +159,13 @@ class PulseInterface:
         """
         Check whether the plugin is loaded.
         This is more of a heuristic than something dependable.
-        Checks if the pickle contains loaded modules and if a source with name "denoised exists".
+        Checks if the pickle contains loaded modules and if a source with name "rnnoise_denoised" exists.
         The latter check is useful because after a reboot while activated, the modules are reset,
         which would lead to a module being present in the pickle file but not actually activated.
         """
         try:
             with open(LOADED_MODULES_PATH, "rb") as file:
                 loaded = pickle.load(file)
-                return loaded != [] and any(s.name == "denoised" for s in pulse.source_list())
+                return loaded != [] and any(s.name == "rnnoise_denoised" for s in pulse.source_list())
         except FileNotFoundError:
             return False
