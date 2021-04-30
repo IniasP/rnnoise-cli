@@ -12,7 +12,7 @@ help:
 	@echo "clean:     clean previously built package files"
 
 init:
-	pip install -r requirements.txt
+	${PYTHON} -m pip install -r requirements.txt
 
 clean:
 	rm -rf build/

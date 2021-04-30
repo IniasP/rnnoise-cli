@@ -66,7 +66,8 @@ source venv/bin/activate
 
 Install dev requirements:
 ```bash
-python3 -m pip install -r requirements.txt
+# this runs pip install -r requirements.txt
+make init
 ```
 
 Check out the [noise-suppression-for-voice releases](https://github.com/werman/noise-suppression-for-voice/releases)
