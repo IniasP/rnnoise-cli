@@ -8,7 +8,7 @@ If you'd like a GUI alternative, check out [Cadmus](https://github.com/josh-rich
 
 ## Installation
 
-Install from PyPI:
+Install from [PyPI](https://pypi.org/project/rnnoise-cli):
 ```
 pip install rnnoise-cli
 ```
