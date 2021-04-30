@@ -131,6 +131,12 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
     """
     Activate the noise suppression plugin.
     """
+    try:
+        PulseInterface.unload_modules(ctx.verbose)
+        click.secho("Unloaded previously loaded modules first.", fg="red")
+    except NoneLoadedException:
+        pass
+
     activate_config = ctx.config["activate"]
     if device is None:
         device = activate_config.get("device", None)

@@ -32,8 +32,6 @@ class PulseInterface:
         try:
             with open(LOADED_MODULES_PATH, "rb") as file:
                 loaded = pickle.load(file)
-                if loaded:
-                    PulseInterface.unload_modules()
         except FileNotFoundError:
             loaded: List[int] = []
 
@@ -105,20 +103,21 @@ class PulseInterface:
         )
 
     @staticmethod
-    def unload_modules(verbose: bool = False):
+    def unload_modules(verbose: bool = False, modules: List[int] = None):
         """
-        Raises NoneLoadedException if it doesn't find anything to unload.
+        Raises NoneLoadedException if `modules` is None and it doesn't find anything to unload.
         """
-        try:
-            with open(LOADED_MODULES_PATH, "rb") as file:
-                loaded = pickle.load(file)
-        except FileNotFoundError:
-            raise NoneLoadedException
+        if modules is None:
+            try:
+                with open(LOADED_MODULES_PATH, "rb") as file:
+                    modules = pickle.load(file)
+            except FileNotFoundError:
+                raise NoneLoadedException
 
-        if not loaded:
+        if not modules:
             raise NoneLoadedException
         else:
-            for index in loaded:
+            for index in modules:
                 try:
                     pulse.module_unload(index)
                     if verbose:
