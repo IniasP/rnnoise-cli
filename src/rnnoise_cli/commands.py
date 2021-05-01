@@ -58,7 +58,7 @@ def rnnoise(ctx, verbose: bool):
     ctx.obj = CtxData(config, verbose)
 
 
-def echo_devices_pretty():
+def list_devices_pretty() -> str:
     """
     Column printing based on https://stackoverflow.com/a/56002400/11520125
     """
@@ -71,12 +71,11 @@ def echo_devices_pretty():
     for col in zip(*device_strings):
         column_lens.append(max(len(val) for val in col))
     fmt = f"{{:>{column_lens[0]}}}  {{:<{column_lens[1]}}}  {{:<{column_lens[2]}}}"
-    for s in device_strings:
-        click.echo(fmt.format(*s))
+    return "\n".join(fmt.format(*s) for s in device_strings)
 
 
 def prompt_device_pretty() -> str:
-    echo_devices_pretty()
+    click.echo(list_devices_pretty())
     return click.prompt(
         f"{ANSI_COLOR_YELLOW}Number{ANSI_STYLE_RESET} or "
         f"{ANSI_COLOR_BLUE}name{ANSI_STYLE_RESET} "
@@ -203,7 +202,7 @@ def list_devices():
     """
     List available devices.
     """
-    echo_devices_pretty()
+    click.echo(list_devices_pretty())
 
 
 @rnnoise.command(name="license")
