@@ -18,6 +18,8 @@ class NoneLoadedException(Exception):
 
 
 class PulseInterface:
+    pulse = pulsectl.Pulse("rnnoise_cli")
+
     @staticmethod
     def cli_command(command: List[str]):
         with contextlib.closing(pulsectl.connect_to_cli()) as s:
