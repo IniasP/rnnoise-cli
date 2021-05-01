@@ -1,6 +1,6 @@
 PYTHON = python3
 
-.PHONY: help init clean build
+.PHONY: help init clean build test
 
 help:
 	@echo "*-----------------------*"
@@ -13,6 +13,9 @@ help:
 
 init:
 	${PYTHON} -m pip install -r requirements.txt
+
+test:
+	${PYTHON} -m unittest discover --start-directory tests -v
 
 clean:
 	rm -rf build/
