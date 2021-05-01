@@ -59,13 +59,20 @@ def rnnoise(ctx, verbose: bool):
 
 
 def echo_devices_pretty():
-    devices = PulseInterface.get_input_devices()
-    for d in devices:
-        click.echo(
-            f"[{ANSI_COLOR_YELLOW}{d.index}{ANSI_STYLE_RESET}] "
-            f"{ANSI_COLOR_BLUE}{d.name}{ANSI_STYLE_RESET} "
-            f"({d.description})"
-        )
+    """
+    Column printing based on https://stackoverflow.com/a/56002400/11520125
+    """
+    device_strings = [(
+        f"[{ANSI_COLOR_YELLOW}{d.index}{ANSI_STYLE_RESET}]",
+        f"{ANSI_COLOR_BLUE}{d.name}{ANSI_STYLE_RESET}",
+        d.description
+    ) for d in PulseInterface.get_input_devices()]
+    column_lens = []
+    for col in zip(*device_strings):
+        column_lens.append(max(len(val) for val in col))
+    fmt = f"{{:>{column_lens[0]}}}  {{:<{column_lens[1]}}}  {{:<{column_lens[2]}}}"
+    for s in device_strings:
+        click.echo(fmt.format(*s))
 
 
 def prompt_device_pretty() -> str:
