@@ -90,10 +90,10 @@ def get_device_or_default(device: str = None):
         return PulseInterface.get_default_input_device()
     else:
         try:
-            return PulseInterface.get_device_by_num(int(device))
+            return PulseInterface.get_source_by_num(int(device))
         except ValueError:
             try:
-                return PulseInterface.get_device_by_name(device)
+                return PulseInterface.get_source_by_name(device)
             except ValueError:
                 return PulseInterface.get_default_input_device()
 
@@ -107,14 +107,14 @@ def prompt_until_valid_device(device: str = None):
         # device is a number
         try:
             # device is a valid number
-            return PulseInterface.get_device_by_num(int(device))
+            return PulseInterface.get_source_by_num(int(device))
         except ValueError:
             # device is an invalid number
             click.secho("Invalid device number.", fg="red")
             return prompt_until_valid_device()
     except ValueError:
         # device is a string
-        if PulseInterface.get_device_by_name(device):
+        if PulseInterface.get_source_by_name(device):
             # device is a valid string
             return device
         else:

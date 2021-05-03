@@ -142,17 +142,17 @@ class PulseInterface:
 
     @staticmethod
     def get_default_input_device():
-        return PulseInterface.get_device_by_name(pulse.server_info().default_source_name)
+        return PulseInterface.get_source_by_name(pulse.server_info().default_source_name)
 
     @staticmethod
-    def get_device_by_name(name: str):
+    def get_source_by_name(name: str):
         try:
-            return next((s for s in pulse.source_list() if s.name == name))
-        except StopIteration:
+            return pulse.get_source_by_name(name)
+        except pulsectl.PulseIndexError:
             raise ValueError
 
     @staticmethod
-    def get_device_by_num(num: int):
+    def get_source_by_num(num: int):
         try:
             return next((s for s in pulse.source_list() if s.index == num))
         except StopIteration:
