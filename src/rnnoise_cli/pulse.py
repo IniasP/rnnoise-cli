@@ -219,10 +219,11 @@ class PulseInterface:
     def rnn_is_loaded(cls):
         """
         Check whether the plugin is loaded.
-        This is more of a heuristic than something dependable.
-        Checks if the pickle contains loaded modules and if a source with name "rnnoise_denoised" exists.
-        The latter check is useful because after a reboot while activated, the modules are reset,
-        which would lead to a module being present in the pickle file but not actually activated.
         """
-        loaded = cls.get_loaded_modules()
-        return bool(loaded) and any(s.name == cls.remap_source_name for s in cls.pulse.source_list())
+        if cls.get_loaded_modules():
+            # Check if any of the modules are actually present
+            # e.g. after a reboot the pickle file may contain "activated" modules which were actually reset
+            rnn_names = [cls.null_sink_name, cls.ladspa_sink_name, cls.loopback_key, cls.remap_source_name]
+            return any(s.name in rnn_names for s in cls.pulse.source_list())
+        else:
+            return False
