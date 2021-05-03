@@ -81,7 +81,10 @@ class PulseInterface:
         remap_source_index = pulse.module_load("module-remap-source", remap_source_opts)
         loaded.append(remap_source_index)
         if verbose:
-            click.echo(f"Loadied module-remap-source with index {remap_source_index} and options: {remap_source_opts}")
+            click.echo(f"Loaded module-remap-source with index {remap_source_index} and options: {remap_source_opts}")
+
+        # Set default
+        pulse.source_default_set("rnnoise_denoised")
 
         # Write loaded modules for proper unloading
         if not os.path.exists(CACHE_PATH):
