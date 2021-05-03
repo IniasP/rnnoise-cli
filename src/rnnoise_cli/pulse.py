@@ -1,19 +1,60 @@
 import os
 import sys
+import contextlib
+import pickle
 from typing import List, Dict
+from dataclasses import dataclass
 
 import click
 import pulsectl
-import contextlib
-import pickle
 
 LADSPA_PLUGIN_PATH = os.path.join(sys.prefix, "rnnoise_cli", "librnnoise_ladspa.so")
 CACHE_PATH = os.path.join(os.environ["HOME"], ".cache", "rnnoise_cli")
-LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "loaded_modules.pickle")
+LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
 
 
 class NoneLoadedException(Exception):
     pass
+
+
+class NotActivatedException(Exception):
+    pass
+
+
+@dataclass
+class LoadParams:
+    mic_name: str
+    mic_rate: int
+    control: int
+
+
+class LoadInfo:
+    params: LoadParams = None
+    modules: Dict[str, int] = {}
+
+    def __init__(self, params: LoadParams, modules: Dict[str, int]):
+        self.params = params
+        self.modules = modules
+
+    @classmethod
+    def from_pickle(cls, pickle_path=LOADED_MODULES_PATH) -> 'LoadInfo':
+        """
+        Raises FileNotFoundError if path doesn't exist
+        or ValueError if the file is invalid.
+        """
+        with open(pickle_path, "rb") as file:
+            result = pickle.load(file)
+        if not isinstance(result, cls):
+            raise ValueError
+
+        return result
+
+    def write_pickle(self, pickle_path=LOADED_MODULES_PATH):
+        dirname = os.path.dirname(pickle_path)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        with open(LOADED_MODULES_PATH, 'wb') as file:
+            pickle.dump(self, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 class PulseInterface:
@@ -48,14 +89,14 @@ class PulseInterface:
             pickle.dump(loaded, file, protocol=pickle.HIGHEST_PROTOCOL)
 
     @classmethod
-    def load_modules(cls, mic_name: str, mic_rate: int, control_level: int, verbose: bool):
+    def load_modules(cls, load_params: LoadParams, verbose: bool) -> LoadInfo:
         # TODO: add stereo mic support
 
-        loaded = cls.get_loaded_modules()
+        loaded = {}
 
         null_sink_opts = (
             f"sink_name={cls.null_sink_name} "
-            f"rate={mic_rate} "
+            f"rate={load_params.mic_rate} "
             "sink_properties=\"device.description='RNNoise Null Sink'\""
         )
         loaded[cls.null_sink_name] = cls.pulse.module_load("module-null-sink", null_sink_opts)
@@ -69,7 +110,7 @@ class PulseInterface:
             f"sink_master={cls.null_sink_name} "
             "label=noise_suppressor_mono "
             f"plugin=\"{LADSPA_PLUGIN_PATH}\" "
-            f"control={control_level} "
+            f"control={load_params.control} "
             "sink_properties=\"device.description='RNNoise LADSPA Sink'\""
         )
         loaded[cls.ladspa_sink_name] = cls.pulse.module_load("module-ladspa-sink", ladspa_sink_opts)
@@ -79,7 +120,7 @@ class PulseInterface:
                        f"and options: {ladspa_sink_opts}")
 
         loopback_opts = (
-            f"source={mic_name} "
+            f"source={load_params.mic_name} "
             f"sink={cls.ladspa_sink_name} "
             "channels=1 "
             "source_dont_move=true "
@@ -106,7 +147,16 @@ class PulseInterface:
         # Set default
         cls.pulse.source_default_set(cls.remap_source_name)
 
-        cls.write_loaded_modules(loaded)
+        load_info = LoadInfo(load_params, loaded)
+        load_info.write_pickle()
+        return load_info
+
+    @staticmethod
+    def get_loaded_modules() -> Dict[str, int]:
+        try:
+            return LoadInfo.from_pickle().modules
+        except (ValueError, FileNotFoundError):
+            return {}
 
         # Write loaded modules for proper unloading
         if not os.path.exists(CACHE_PATH):
@@ -130,7 +180,7 @@ class PulseInterface:
         )
 
     @classmethod
-    def unload_modules(cls, verbose: bool = False, modules: Dict[str, int] = None):
+    def unload_modules(cls, modules: Dict[str, int] = None, verbose: bool = False):
         """
         Raises NoneLoadedException if `modules` is None and it doesn't find anything to unload.
         """

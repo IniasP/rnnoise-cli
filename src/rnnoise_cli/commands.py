@@ -1,6 +1,6 @@
 import os
 import click
-from .pulse import PulseInterface, NoneLoadedException
+from .pulse import PulseInterface, LoadParams, NoneLoadedException
 from importlib.metadata import version
 import importlib.resources
 import configparser
@@ -138,7 +138,7 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
     Activate the noise suppression plugin.
     """
     try:
-        PulseInterface.unload_modules(ctx.verbose)
+        PulseInterface.unload_modules(verbose=ctx.verbose)
         click.secho("Unloaded previously loaded modules first.", fg="red")
     except NoneLoadedException:
         pass
@@ -171,7 +171,7 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
         click.echo(f"\t{ANSI_UNDERLINE}Sampling rate:{ANSI_STYLE_RESET} {rate}")
         click.echo(f"\t{ANSI_UNDERLINE}Control level:{ANSI_STYLE_RESET} {control}")
 
-    PulseInterface.load_modules(device.name, rate, control, ctx.verbose)
+    PulseInterface.load_modules(LoadParams(mic_name=device.name, mic_rate=rate, control=control), ctx.verbose)
 
     if PulseInterface.rnn_is_loaded():
         click.secho("Activated!", fg="green")
@@ -190,7 +190,7 @@ def deactivate(ctx: CtxData, force: bool):
         PulseInterface.unload_modules_all()
     else:
         try:
-            PulseInterface.unload_modules(ctx.verbose)
+            PulseInterface.unload_modules(verbose=ctx.verbose)
             click.secho("Deactivated!", fg="green")
         except NoneLoadedException:
             click.secho(f"No loaded modules found, try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you're sure.",
