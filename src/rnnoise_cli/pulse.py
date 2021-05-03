@@ -70,26 +70,8 @@ class PulseInterface:
             for c in command:
                 s.write(c + "\n")
 
-    @staticmethod
-    def get_loaded_modules() -> Dict[str, int]:
-        try:
-            with open(LOADED_MODULES_PATH, "rb") as file:
-                loaded = pickle.load(file)
-        except FileNotFoundError:
-            loaded = {}
-        if not isinstance(loaded, dict):
-            loaded = {}
-        return loaded
-
-    @staticmethod
-    def write_loaded_modules(loaded: Dict[str, int]):
-        if not os.path.exists(CACHE_PATH):
-            os.makedirs(CACHE_PATH)
-        with open(LOADED_MODULES_PATH, 'wb') as file:
-            pickle.dump(loaded, file, protocol=pickle.HIGHEST_PROTOCOL)
-
     @classmethod
-    def load_modules(cls, load_params: LoadParams, verbose: bool) -> LoadInfo:
+    def load_modules(cls, load_params: LoadParams, verbose: bool = False) -> LoadInfo:
         # TODO: add stereo mic support
 
         loaded = {}
@@ -158,11 +140,19 @@ class PulseInterface:
         except (ValueError, FileNotFoundError):
             return {}
 
-        # Write loaded modules for proper unloading
-        if not os.path.exists(CACHE_PATH):
-            os.makedirs(CACHE_PATH)
-        with open(LOADED_MODULES_PATH, 'wb') as file:
-            pickle.dump(loaded, file, protocol=pickle.HIGHEST_PROTOCOL)
+    @classmethod
+    def change_control_level(cls, control: int, verbose: bool = False):
+        if not cls.rnn_is_loaded():
+            raise NotActivatedException
+
+        try:
+            old_load_params = LoadInfo.from_pickle().params
+        except (ValueError, FileNotFoundError):
+            raise NotActivatedException
+        old_load_params.control = control
+
+        cls.unload_modules(verbose)
+        cls.load_modules(old_load_params, verbose)
 
     @staticmethod
     def unload_modules_all():
@@ -180,12 +170,11 @@ class PulseInterface:
         )
 
     @classmethod
-    def unload_modules(cls, modules: Dict[str, int] = None, verbose: bool = False):
+    def unload_modules(cls, verbose: bool = False):
         """
         Raises NoneLoadedException if `modules` is None and it doesn't find anything to unload.
         """
-        if modules is None:
-            modules = cls.get_loaded_modules()
+        modules = cls.get_loaded_modules()
 
         if not modules:
             raise NoneLoadedException
@@ -222,7 +211,7 @@ class PulseInterface:
     @classmethod
     def get_source_by_num(cls, num: int):
         try:
-            return next((s for s in cls.pulse.source_list() if s.index == num))
+            return next(s for s in cls.pulse.source_list() if s.index == num)
         except StopIteration:
             raise ValueError
 
