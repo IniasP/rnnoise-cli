@@ -1,14 +1,13 @@
 import os
-import sys
 import contextlib
 import pickle
+import importlib.resources
 from typing import List, Dict
 from dataclasses import dataclass
 
 import click
 import pulsectl
 
-LADSPA_PLUGIN_PATH = os.path.join(sys.prefix, "rnnoise_cli", "librnnoise_ladspa.so")
 CACHE_PATH = os.path.join(os.environ["HOME"], ".cache", "rnnoise_cli")
 LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
 
@@ -87,14 +86,15 @@ class PulseInterface:
                        f"with index {loaded[cls.null_sink_name]} "
                        f"and options: {null_sink_opts}")
 
-        ladspa_sink_opts = (
-            f"sink_name={cls.ladspa_sink_name} "
-            f"sink_master={cls.null_sink_name} "
-            "label=noise_suppressor_mono "
-            f"plugin=\"{LADSPA_PLUGIN_PATH}\" "
-            f"control={load_params.control} "
-            "sink_properties=\"device.description='RNNoise LADSPA Sink'\""
-        )
+        with importlib.resources.path("rnnoise_cli.data", "librnnoise_ladspa.so") as plugin_path:
+            ladspa_sink_opts = (
+                f"sink_name={cls.ladspa_sink_name} "
+                f"sink_master={cls.null_sink_name} "
+                "label=noise_suppressor_mono "
+                f"plugin=\"{plugin_path}\" "
+                f"control={load_params.control} "
+                "sink_properties=\"device.description='RNNoise LADSPA Sink'\""
+            )
         loaded[cls.ladspa_sink_name] = cls.pulse.module_load("module-ladspa-sink", ladspa_sink_opts)
         if verbose:
             click.echo(f"Loaded module-ladspa-sink {cls.ladspa_sink_name} "

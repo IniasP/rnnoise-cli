@@ -55,7 +55,7 @@ control = 50
 
 ## Development
 
-The project should work with any Python ≥ 3.6.
+The project should work with any Python ≥ 3.7.
 
 Create a virtual environment:
 ```bash
