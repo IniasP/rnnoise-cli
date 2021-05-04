@@ -1,14 +1,14 @@
 import os
-import sys
 import contextlib
 import pickle
+import importlib.resources
 from typing import List, Dict
 from dataclasses import dataclass
 
 import click
 import pulsectl
 
-LADSPA_PLUGIN_PATH = os.path.join(sys.prefix, "rnnoise_cli", "librnnoise_ladspa.so")
+LADSPA_PLUGIN_PATH = importlib.resources.path("rnnoise_cli", "data/librnnoise_ladspa.so")
 CACHE_PATH = os.path.join(os.environ["HOME"], ".cache", "rnnoise_cli")
 LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
 
