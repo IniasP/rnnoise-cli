@@ -73,7 +73,7 @@ class PulseInterface:
     def load_modules(cls, load_params: LoadParams, verbose: bool = False, set_default: bool = True) -> LoadInfo:
         # TODO: add stereo mic support
 
-        loaded = {}
+        loaded = cls.get_loaded_modules()
 
         null_sink_opts = (
             f"sink_name={cls.null_sink_name} "
@@ -164,7 +164,10 @@ class PulseInterface:
         """
         Whether some stream is using the rnnoise output.
         """
-        index = cls.get_source_by_name(cls.remap_source_name).index
+        try:
+            index = cls.get_source_by_name(cls.remap_source_name).index
+        except ValueError:
+            return False
         return any(s.source == index for s in cls.pulse.source_output_list())
 
     @staticmethod

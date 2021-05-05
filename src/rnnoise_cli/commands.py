@@ -107,10 +107,10 @@ def get_device_or_prompt(device: str = None):
             return get_device_or_prompt()
     except ValueError:
         # device is a string
-        if PulseInterface.get_source_by_name(device):
+        try:
             # device is a valid string
-            return device
-        else:
+            return PulseInterface.get_source_by_name(device)
+        except ValueError:
             # device is an invalid string
             click.secho("Invalid device name.", fg="red")
             return get_device_or_prompt()
@@ -132,11 +132,10 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
     """
     Activate the noise suppression plugin.
     """
-    try:
-        PulseInterface.unload_modules(verbose=ctx.verbose)
-        click.secho("Unloaded previously loaded modules first.", fg="red")
-    except PulseInterfaceException:
-        pass
+    if PulseInterface.rnn_is_loaded():
+        if not click.confirm(f"{ANSI_COLOR_RED}RNNoise is already loaded.{ANSI_STYLE_RESET}\n"
+                             f"Continue anyway?"):
+            return
 
     activate_config = ctx.config["activate"]
     if device is None:
@@ -166,7 +165,8 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
         click.echo(f"\t{ANSI_UNDERLINE}Sampling rate:{ANSI_STYLE_RESET} {rate}")
         click.echo(f"\t{ANSI_UNDERLINE}Control level:{ANSI_STYLE_RESET} {control}")
 
-    PulseInterface.load_modules(LoadParams(mic_name=device.name, mic_rate=rate, control=control), ctx.verbose, set_default)
+    PulseInterface.load_modules(LoadParams(mic_name=device.name, mic_rate=rate, control=control),
+                                ctx.verbose, set_default)
 
     if PulseInterface.rnn_is_loaded():
         click.secho("Activated!", fg="green")
@@ -190,9 +190,10 @@ def deactivate(ctx: CtxData, force_unload_all: bool, force: bool):
             PulseInterface.unload_modules(verbose=ctx.verbose, force=force)
             click.secho("Deactivated!", fg="green")
         except RNNInUseException:
-            click.secho("The RNNoise input stream is in use, "
-                        "unloading may cause applications to misbehave. "
-                        f"Use {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.", fg="red")
+            if click.confirm(f"{ANSI_COLOR_RED}The RNNoise input stream is in use, "
+                             f"unloading may cause applications to misbehave.{ANSI_STYLE_RESET}\n"
+                             f"Are you sure?"):
+                PulseInterface.unload_modules(verbose=ctx.verbose, force=True)
         except NoLoadedModulesException:
             click.secho(f"No loaded modules found, "
                         f"try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.",
@@ -232,9 +233,10 @@ def control_set(ctx: CtxData, control_level: int, force: bool, set_default: bool
     except NotActivatedException:
         click.secho("Plugin is not activated, cannot change control level.", fg="red")
     except RNNInUseException:
-        click.secho("The RNNoise input stream is in use, "
-                    "changing control level may cause applications to misbehave. "
-                    f"Use {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.", fg="red")
+        if click.confirm(f"{ANSI_COLOR_RED}The RNNoise input stream is in use, "
+                         f"changing control level may cause applications to misbehave.{ANSI_STYLE_RESET}\n"
+                         "Are you sure?"):
+            PulseInterface.change_control_level(control_level, ctx.verbose, True, set_default)
 
 
 @rnnoise.command(name="list")
