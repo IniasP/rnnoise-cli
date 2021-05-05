@@ -9,7 +9,7 @@ help:
 	@echo
 	@echo "init:      install requirements"
 	@echo "test:      runs unit tests, will run 'install' first"
-	@echo "install:   install the package (installs locally without building)"
+	@echo "install:   install the package (installs locally without building distribution archives)"
 	@echo "build:     build the package (builds distribution archives)"
 	@echo "clean:     clean previously built package files"
 
