@@ -1,18 +1,11 @@
 import os
 import click
-from .pulse import PulseInterface, LoadParams, NoneLoadedException
+from .pulse import PulseInterface, LoadInfo, LoadParams
+from .pulse.exceptions import PulseInterfaceException, RNNInUseException, NotActivatedException
+from .ansi import *
 from importlib.metadata import version
 import importlib.resources
 import configparser
-
-# ANSI escape sequences
-ANSI_COLOR_GREEN = "\u001b[32m"
-ANSI_COLOR_RED = "\u001b[31m"
-ANSI_COLOR_BLUE = "\u001b[34m"
-ANSI_COLOR_YELLOW = "\u001b[33m"
-ANSI_UNDERLINE = "\u001b[4m"
-ANSI_NO_UNDERLINE = "\u001b[24m"
-ANSI_STYLE_RESET = "\u001b[0m"
 
 CONFIG_FILE_PATH = os.path.join(os.environ["HOME"], ".config", "rnnoise_cli", "rnnoise_cli.conf")
 
@@ -98,7 +91,7 @@ def get_device_or_default(device: str = None):
                 return PulseInterface.get_default_input_device()
 
 
-def prompt_until_valid_device(device: str = None):
+def get_device_or_prompt(device: str = None):
     if device is None:
         device = prompt_device_pretty()
     if device == "":
@@ -111,7 +104,7 @@ def prompt_until_valid_device(device: str = None):
         except ValueError:
             # device is an invalid number
             click.secho("Invalid device number.", fg="red")
-            return prompt_until_valid_device()
+            return get_device_or_prompt()
     except ValueError:
         # device is a string
         if PulseInterface.get_source_by_name(device):
@@ -120,7 +113,7 @@ def prompt_until_valid_device(device: str = None):
         else:
             # device is an invalid string
             click.secho("Invalid device name.", fg="red")
-            return prompt_until_valid_device()
+            return get_device_or_prompt()
 
 
 @rnnoise.command()
@@ -130,17 +123,19 @@ def prompt_until_valid_device(device: str = None):
               help="Microphone sample rate (in Hz). Default: auto.")
 @click.option("--control", "-c", type=int,
               help="Control level between 0 and 100. Default: 50.")
-@click.option("--no-prompts", "--no-interactive", is_flag=True,
-              help="Don't prompt anything, use defaults for everything not provided.")
+@click.option("--prompt/--no-prompt", default=True,
+              help="When no device is configured, prompt or use default device immediately?")
+@click.option("--set-default/--no-set-default", default=True,
+              help="Set the new RNNoise device as default device.")
 @click.pass_obj
-def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: bool):
+def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, set_default: bool):
     """
     Activate the noise suppression plugin.
     """
     try:
         PulseInterface.unload_modules(verbose=ctx.verbose)
         click.secho("Unloaded previously loaded modules first.", fg="red")
-    except NoneLoadedException:
+    except PulseInterfaceException:
         pass
 
     activate_config = ctx.config["activate"]
@@ -151,10 +146,10 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
     if control is None:
         control = activate_config.getint("control", None)
 
-    if no_prompts:
-        device = get_device_or_default(device)
+    if prompt:
+        device = get_device_or_prompt(device)
     else:
-        device = prompt_until_valid_device(device)
+        device = get_device_or_default(device)
 
     if control is None or not 0 <= control <= 100:
         control = 50
@@ -171,7 +166,7 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, no_prompts: boo
         click.echo(f"\t{ANSI_UNDERLINE}Sampling rate:{ANSI_STYLE_RESET} {rate}")
         click.echo(f"\t{ANSI_UNDERLINE}Control level:{ANSI_STYLE_RESET} {control}")
 
-    PulseInterface.load_modules(LoadParams(mic_name=device.name, mic_rate=rate, control=control), ctx.verbose)
+    PulseInterface.load_modules(LoadParams(mic_name=device.name, mic_rate=rate, control=control), ctx.verbose, set_default)
 
     if PulseInterface.rnn_is_loaded():
         click.secho("Activated!", fg="green")
@@ -192,9 +187,48 @@ def deactivate(ctx: CtxData, force: bool):
         try:
             PulseInterface.unload_modules(verbose=ctx.verbose)
             click.secho("Deactivated!", fg="green")
-        except NoneLoadedException:
-            click.secho(f"No loaded modules found, try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you're sure.",
+        except PulseInterfaceException:
+            click.secho(f"No loaded modules found, "
+                        f"try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.",
                         fg="red")
+
+
+@rnnoise.group(name="control")
+@click.pass_obj
+def control_(ctx: CtxData):
+    """
+    Change the control level
+    """
+    pass
+
+
+@control_.command(name="get")
+def control_get():
+    """
+    Get control level.
+    """
+    click.echo(LoadInfo.from_pickle().params.control)
+
+
+@control_.command(name="set")
+@click.argument("control_level", type=int)
+@click.option("--force", "-f", is_flag=True, default=False,
+              help="Change control level, even if the RNNoise input stream is active.")
+@click.option("--set-default/--no-set-default", default=False,
+              help="Set the updated RNNoise device as default device.")
+@click.pass_obj
+def control_set(ctx: CtxData, control_level: int, force: bool, set_default: bool):
+    """
+    Set control level.
+    """
+    try:
+        PulseInterface.change_control_level(control_level, ctx.verbose, force, set_default)
+    except NotActivatedException:
+        click.secho("Plugin is not activated, cannot change control level.", fg="red")
+    except RNNInUseException:
+        click.secho("The RNNoise input stream is in use, "
+                    "changing control level may cause applications to misbehave. "
+                    f"Use {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.", fg="red")
 
 
 @rnnoise.command(name="list")
@@ -222,6 +256,7 @@ def status():
     """
     if PulseInterface.rnn_is_loaded():
         click.secho("The plugin is loaded.", fg="green")
+        click.secho(LoadInfo.from_pickle().params.pretty)
     else:
         click.secho("The plugin is not loaded.", fg="red")
 
