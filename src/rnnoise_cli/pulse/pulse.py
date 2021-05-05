@@ -2,6 +2,8 @@ import os
 import contextlib
 import pickle
 import importlib.resources
+from ..ansi import ANSI_UNDERLINE, ANSI_STYLE_RESET
+from .exceptions import *
 from typing import List, Dict
 from dataclasses import dataclass
 
@@ -12,19 +14,17 @@ CACHE_PATH = os.path.join(os.environ["HOME"], ".cache", "rnnoise_cli")
 LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
 
 
-class NoneLoadedException(Exception):
-    pass
-
-
-class NotActivatedException(Exception):
-    pass
-
-
 @dataclass
 class LoadParams:
     mic_name: str
     mic_rate: int
     control: int
+
+    @property
+    def pretty(self, ansi_style_seq=ANSI_UNDERLINE) -> str:
+        return f"{ansi_style_seq}Mic name:{ANSI_STYLE_RESET}           {self.mic_name}\n" \
+               f"{ansi_style_seq}Mic sampling rate:{ANSI_STYLE_RESET}  {self.mic_rate} Hz\n" \
+               f"{ansi_style_seq}Control level:{ANSI_STYLE_RESET}      {self.control}"
 
 
 class LoadInfo:
@@ -70,7 +70,7 @@ class PulseInterface:
                 s.write(c + "\n")
 
     @classmethod
-    def load_modules(cls, load_params: LoadParams, verbose: bool = False) -> LoadInfo:
+    def load_modules(cls, load_params: LoadParams, verbose: bool = False, set_default: bool = True) -> LoadInfo:
         # TODO: add stereo mic support
 
         loaded = {}
@@ -126,8 +126,8 @@ class PulseInterface:
                        f"with index {loaded[cls.remap_source_name]} "
                        f"and options: {remap_source_opts}")
 
-        # Set default
-        cls.pulse.source_default_set(cls.remap_source_name)
+        if set_default:
+            cls.pulse.source_default_set(cls.remap_source_name)
 
         load_info = LoadInfo(load_params, loaded)
         load_info.write_pickle()
@@ -141,18 +141,31 @@ class PulseInterface:
             return {}
 
     @classmethod
-    def change_control_level(cls, control: int, verbose: bool = False):
+    def change_control_level(cls, control: int, verbose: bool = False, force: bool = False, set_default: bool = False):
+        not_activated_msg = "The plugin is not activated. Cannot change control level."
         if not cls.rnn_is_loaded():
-            raise NotActivatedException
+            raise NotActivatedException(not_activated_msg)
+
+        if not force and cls.streams_using_rnnoise():
+            raise RNNInUseException("The RNNoise plugin is being used by some stream. "
+                                    "Not allowed to change control level without `force` argument.")
 
         try:
             old_load_params = LoadInfo.from_pickle().params
         except (ValueError, FileNotFoundError):
-            raise NotActivatedException
+            raise NotActivatedException(not_activated_msg)
         old_load_params.control = control
 
         cls.unload_modules(verbose)
-        cls.load_modules(old_load_params, verbose)
+        cls.load_modules(old_load_params, verbose, set_default)
+
+    @classmethod
+    def streams_using_rnnoise(cls) -> bool:
+        """
+        Whether some stream is using the rnnoise output.
+        """
+        index = cls.get_source_by_name(cls.remap_source_name).index
+        return any(s.source == index for s in cls.pulse.source_output_list())
 
     @staticmethod
     def unload_modules_all():
@@ -172,12 +185,12 @@ class PulseInterface:
     @classmethod
     def unload_modules(cls, verbose: bool = False):
         """
-        Raises NoneLoadedException if `modules` is None and it doesn't find anything to unload.
+        Raises PulseInterfaceException if `modules` is None and it doesn't find anything to unload.
         """
         modules = cls.get_loaded_modules()
 
         if not modules:
-            raise NoneLoadedException
+            raise PulseInterfaceException("No modules loaded.")
         else:
             for name, index in modules.items():
                 try:
