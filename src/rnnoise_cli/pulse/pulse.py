@@ -147,7 +147,7 @@ class PulseInterface:
             raise NotActivatedException(not_activated_msg)
 
         if not force and cls.streams_using_rnnoise():
-            raise RNNInUseException("The RNNoise plugin is being used by some stream. "
+            raise RNNInUseException("The RNNoise plugin is being used by some application. "
                                     "Not allowed to change control level without `force` argument.")
 
         try:
@@ -183,14 +183,18 @@ class PulseInterface:
         )
 
     @classmethod
-    def unload_modules(cls, verbose: bool = False):
+    def unload_modules(cls, verbose: bool = False, force: bool = False):
         """
         Raises PulseInterfaceException if `modules` is None and it doesn't find anything to unload.
         """
+        if not force and cls.streams_using_rnnoise():
+            raise RNNInUseException("The RNNoise plugin is being used by some application. "
+                                    "Not allowed to unload without `force` argument.")
+
         modules = cls.get_loaded_modules()
 
         if not modules:
-            raise PulseInterfaceException("No modules loaded.")
+            raise NoLoadedModulesException("No modules loaded, cannot unload modules.")
         else:
             for name, index in modules.items():
                 try:

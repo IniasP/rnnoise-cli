@@ -1,7 +1,7 @@
 import os
 import click
 from .pulse import PulseInterface, LoadInfo, LoadParams
-from .pulse.exceptions import PulseInterfaceException, RNNInUseException, NotActivatedException
+from .pulse.exceptions import *
 from .ansi import *
 from importlib.metadata import version
 import importlib.resources
@@ -173,21 +173,27 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
 
 
 @rnnoise.command()
-@click.option("--force", "-f", is_flag=True, default=False,
+@click.option("--force-unload-all", is_flag=True, default=False,
               help="Remove all modules of the types used by rnnoise-cli (module-loopback, module-null-sink, "
                    "module-ladspa-sink, module-remap-source). This could remove modules loaded by other applications.")
+@click.option("--force", is_flag=True, default=False,
+              help="Unload even if the RNNoise input stream is active.")
 @click.pass_obj
-def deactivate(ctx: CtxData, force: bool):
+def deactivate(ctx: CtxData, force_unload_all: bool, force: bool):
     """
     Deactivate the noise suppression plugin.
     """
-    if force:
+    if force_unload_all:
         PulseInterface.unload_modules_all()
     else:
         try:
-            PulseInterface.unload_modules(verbose=ctx.verbose)
+            PulseInterface.unload_modules(verbose=ctx.verbose, force=force)
             click.secho("Deactivated!", fg="green")
-        except PulseInterfaceException:
+        except RNNInUseException:
+            click.secho("The RNNoise input stream is in use, "
+                        "unloading may cause applications to misbehave. "
+                        f"Use {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.", fg="red")
+        except NoLoadedModulesException:
             click.secho(f"No loaded modules found, "
                         f"try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.",
                         fg="red")
@@ -197,7 +203,7 @@ def deactivate(ctx: CtxData, force: bool):
 @click.pass_obj
 def control_(ctx: CtxData):
     """
-    Change the control level
+    Change the control level.
     """
     pass
 
