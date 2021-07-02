@@ -195,8 +195,8 @@ def deactivate(ctx: CtxData, force_unload_all: bool, force: bool):
                              f"Are you sure?"):
                 PulseInterface.unload_modules(verbose=ctx.verbose, force=True)
         except NoLoadedModulesException:
-            click.secho(f"No loaded modules found, "
-                        f"try {ANSI_UNDERLINE}--force{ANSI_NO_UNDERLINE} if you are sure.",
+            click.secho(f"No loaded modules found (already deactivated?), "
+                        f"try {ANSI_UNDERLINE}--force-unload-all{ANSI_NO_UNDERLINE} if you are sure.",
                         fg="red")
 
 
