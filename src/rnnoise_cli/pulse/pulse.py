@@ -78,7 +78,7 @@ class PulseInterface:
         null_sink_opts = (
             f"sink_name={cls.null_sink_name} "
             f"rate={load_params.mic_rate} "
-            "sink_properties=\"device.description='RNNoise Null Sink'\""
+            "sink_properties=\"device.description='RNNoise Denoised Sink'\""
         )
         loaded[cls.null_sink_name] = cls.pulse.module_load("module-null-sink", null_sink_opts)
         if verbose:
@@ -93,7 +93,7 @@ class PulseInterface:
                 "label=noise_suppressor_mono "
                 f"plugin=\"{plugin_path}\" "
                 f"control={load_params.control} "
-                "sink_properties=\"device.description='RNNoise LADSPA Sink'\""
+                "sink_properties=\"device.description='RNNoise Raw Input Sink'\""
             )
         loaded[cls.ladspa_sink_name] = cls.pulse.module_load("module-ladspa-sink", ladspa_sink_opts)
         if verbose:
