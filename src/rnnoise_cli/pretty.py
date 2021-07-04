@@ -36,10 +36,8 @@ def list_devices(devices):
     return "\n".join(fmt.format(*s) for s in device_strings)
 
 
-def params(device, rate, control):
-    return "Selected params:\n" \
-           f"\t{ANSI_UNDERLINE}Device name{ANSI_STYLE_RESET}:    {device.name}\n" \
-           f"\t{ANSI_UNDERLINE}Sampling rate{ANSI_STYLE_RESET}:  {rate}\n" \
+def params(device, control):
+    return f"\t{ANSI_UNDERLINE}Device{ANSI_STYLE_RESET}:         {device.name}\n" \
            f"\t{ANSI_UNDERLINE}Control level{ANSI_STYLE_RESET}:  {control}"
 
 

@@ -12,7 +12,6 @@ CONFIG_FILE_PATH = os.path.join(os.environ["HOME"], ".config", "rnnoise_cli", "r
 CONFIG_DEFAULTS = {
     "activate": {
         # "device": omitted,
-        # "rate": omitted,
         "control": "50"
     }
 }
@@ -98,12 +97,9 @@ def get_device_or_prompt(device: str = None):
             return get_device_or_prompt()
 
 
-# TODO: rate parameter is quite useless, better remove it
 @rnnoise.command()
 @click.option("--device", "-d", type=str,
               help="Input device name or number (see `rnnoise list`). Default: default input device.")
-@click.option("--rate", "-r", type=int,
-              help="Microphone sample rate (in Hz). Default: auto.")
 @click.option("--control", "-c", type=int,
               help="Control level between 0 and 100. Default: 50.")
 @click.option("--prompt/--no-prompt", default=True,
@@ -111,7 +107,7 @@ def get_device_or_prompt(device: str = None):
 @click.option("--set-default/--no-set-default", default=True,
               help="Set the new RNNoise device as default device.")
 @click.pass_obj
-def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, set_default: bool):
+def activate(ctx: CtxData, device: str, control: int, prompt: bool, set_default: bool):
     """
     Activate the noise suppression plugin.
     """
@@ -122,8 +118,6 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
     activate_config = ctx.config["activate"]
     if device is None:
         device = activate_config.get("device", None)
-    if rate is None:
-        rate = activate_config.getint("rate", None)
     if control is None:
         control = activate_config.getint("control", None)
 
@@ -135,14 +129,8 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
     if control is None or not 0 <= control <= 100:
         control = 50
 
-    if rate is not None and rate < 0:
-        click.secho(f"Invalid rate, using auto.", fg="red")
-        rate = None
-    if rate is None:
-        rate = device.sample_spec.rate
-
     if ctx.verbose:
-        click.echo(pretty.params(device, rate, control))
+        click.echo(pretty.params(device, control))
 
     PulseInterface.load_modules(device, control, ctx.verbose, set_default)
 

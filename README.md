@@ -4,7 +4,7 @@ A CLI wrapper for the LADSPA plugin at https://github.com/werman/noise-suppressi
 To be used with systems running PulseAudio (basically any Linux distro).
 This was written out of frustration that Discord+Krisp is unavailable on Linux.
 If you'd like a GUI alternative, check out [Cadmus](https://github.com/josh-richardson/cadmus)
-(as of May 2021, it has some issues and the developer seems to be IMA).
+(as of May 2021, it has some issues and the developer seems to be MIA).
 
 ## Installation
 
@@ -46,9 +46,6 @@ Example config with currently supported options:
 # device to use, omitted by default
 # `rnnoise activate` will prompt for it if omitted (and provide a list of options)
 device = "some.device.name"
-# sampling rate, omitted by default
-# `rnnoise activate` will automatically get the right rate if omitted
-rate = 44100
 # control level (0-100), 50 by default
 control = 50
 ```
