@@ -33,3 +33,4 @@ venv/
 .idea/
 
 test/
+completion.sh
