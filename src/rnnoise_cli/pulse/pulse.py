@@ -70,7 +70,6 @@ class PulseInterface:
 
         mic_name = device.name
         mic_rate = device.sample_spec.rate
-        # TODO: add stereo mic support
         stereo = (device.channel_count == 2)
 
         null_sink_opts = (
@@ -88,7 +87,7 @@ class PulseInterface:
             ladspa_sink_opts = (
                 f"sink_name={cls.ladspa_sink_name} "
                 f"sink_master={cls.null_sink_name} "
-                "label=noise_suppressor_mono "
+                f"label=noise_suppressor_{'stereo' if stereo else 'mono'} "
                 f"plugin=\"{plugin_path}\" "
                 f"control={control} "
                 "sink_properties=\"device.description='RNNoise Raw Input Sink'\""
@@ -102,7 +101,7 @@ class PulseInterface:
         loopback_opts = (
             f"source={mic_name} "
             f"sink={cls.ladspa_sink_name} "
-            "channels=1 "
+            f"channels={2 if stereo else 1} "
             "source_dont_move=true "
             "sink_dont_move=true"
         )
