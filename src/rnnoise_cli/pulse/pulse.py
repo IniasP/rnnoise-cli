@@ -2,10 +2,11 @@ import os
 import contextlib
 import pickle
 import importlib.resources
+
 from ..ansi import ANSI_UNDERLINE, ANSI_STYLE_RESET
 from .exceptions import *
-from typing import List, Dict
-from dataclasses import dataclass
+from typing import List, Dict, Any
+from dataclasses import dataclass, field
 
 import click
 import pulsectl
@@ -15,25 +16,15 @@ LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
 
 
 @dataclass
-class LoadParams:
-    mic_name: str
-    mic_rate: int
+class LoadInfo:
+    device: Any
     control: int
+    modules: Dict[str, int] = field(default_factory=dict)
 
     @property
-    def pretty(self, ansi_style_seq=ANSI_UNDERLINE) -> str:
-        return f"{ansi_style_seq}Mic name:{ANSI_STYLE_RESET}           {self.mic_name}\n" \
-               f"{ansi_style_seq}Mic sampling rate:{ANSI_STYLE_RESET}  {self.mic_rate} Hz\n" \
-               f"{ansi_style_seq}Control level:{ANSI_STYLE_RESET}      {self.control}"
-
-
-class LoadInfo:
-    params: LoadParams = None
-    modules: Dict[str, int] = {}
-
-    def __init__(self, params: LoadParams, modules: Dict[str, int]):
-        self.params = params
-        self.modules = modules
+    def pretty(self) -> str:
+        return f"{ANSI_UNDERLINE}Device{ANSI_STYLE_RESET}:   {self.device.name}\n" \
+               f"{ANSI_UNDERLINE}Control{ANSI_STYLE_RESET}:  {self.control}"
 
     @classmethod
     def from_pickle(cls, pickle_path=LOADED_MODULES_PATH) -> 'LoadInfo':
@@ -70,14 +61,22 @@ class PulseInterface:
                 s.write(c + "\n")
 
     @classmethod
-    def load_modules(cls, load_params: LoadParams, verbose: bool = False, set_default: bool = True) -> LoadInfo:
-        # TODO: add stereo mic support
+    def load_modules(cls,
+                     device,
+                     control: int,
+                     verbose: bool = False,
+                     set_default: bool = True) -> LoadInfo:
 
         loaded = cls.get_loaded_modules()
 
+        mic_name = device.name
+        mic_rate = device.sample_spec.rate
+        # TODO: add stereo mic support
+        stereo = (device.channel_count == 2)
+
         null_sink_opts = (
             f"sink_name={cls.null_sink_name} "
-            f"rate={load_params.mic_rate} "
+            f"rate={mic_rate} "
             "sink_properties=\"device.description='RNNoise Denoised Sink'\""
         )
         loaded[cls.null_sink_name] = cls.pulse.module_load("module-null-sink", null_sink_opts)
@@ -92,7 +91,7 @@ class PulseInterface:
                 f"sink_master={cls.null_sink_name} "
                 "label=noise_suppressor_mono "
                 f"plugin=\"{plugin_path}\" "
-                f"control={load_params.control} "
+                f"control={control} "
                 "sink_properties=\"device.description='RNNoise Raw Input Sink'\""
             )
         loaded[cls.ladspa_sink_name] = cls.pulse.module_load("module-ladspa-sink", ladspa_sink_opts)
@@ -102,7 +101,7 @@ class PulseInterface:
                        f"and options: {ladspa_sink_opts}")
 
         loopback_opts = (
-            f"source={load_params.mic_name} "
+            f"source={mic_name} "
             f"sink={cls.ladspa_sink_name} "
             "channels=1 "
             "source_dont_move=true "
@@ -129,7 +128,7 @@ class PulseInterface:
         if set_default:
             cls.pulse.source_default_set(cls.remap_source_name)
 
-        load_info = LoadInfo(load_params, loaded)
+        load_info = LoadInfo(device=device, control=control, modules=loaded)
         load_info.write_pickle()
         return load_info
 
@@ -151,13 +150,12 @@ class PulseInterface:
                                     "Not allowed to change control level without `force` argument.")
 
         try:
-            old_load_params = LoadInfo.from_pickle().params
+            old_device = LoadInfo.from_pickle().device
         except (ValueError, FileNotFoundError):
             raise NotActivatedException(not_activated_msg)
-        old_load_params.control = control
 
         cls.unload_modules(verbose)
-        cls.load_modules(old_load_params, verbose, set_default)
+        cls.load_modules(old_device, control, verbose, set_default)
 
     @classmethod
     def streams_using_rnnoise(cls) -> bool:

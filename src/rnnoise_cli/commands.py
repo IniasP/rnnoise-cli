@@ -1,6 +1,6 @@
 import os
 import click
-from .pulse import PulseInterface, LoadInfo, LoadParams
+from .pulse import PulseInterface, LoadInfo
 from .pulse.exceptions import *
 from .ansi import *
 from importlib.metadata import version
@@ -165,8 +165,7 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
         click.echo(f"\t{ANSI_UNDERLINE}Sampling rate:{ANSI_STYLE_RESET} {rate}")
         click.echo(f"\t{ANSI_UNDERLINE}Control level:{ANSI_STYLE_RESET} {control}")
 
-    PulseInterface.load_modules(LoadParams(mic_name=device.name, mic_rate=rate, control=control),
-                                ctx.verbose, set_default)
+    PulseInterface.load_modules(device, control, ctx.verbose, set_default)
 
     if PulseInterface.rnn_is_loaded():
         click.secho("Activated!", fg="green")
@@ -214,7 +213,7 @@ def control_get():
     """
     Get control level.
     """
-    click.echo(LoadInfo.from_pickle().params.control)
+    click.echo(LoadInfo.from_pickle().control)
 
 
 @control_.command(name="set")
@@ -264,7 +263,7 @@ def status():
     """
     if PulseInterface.rnn_is_loaded():
         click.secho("The plugin is loaded.", fg="green")
-        click.secho(LoadInfo.from_pickle().params.pretty)
+        click.secho(LoadInfo.from_pickle().pretty)
     else:
         click.secho("The plugin is not loaded.", fg="red")
 
