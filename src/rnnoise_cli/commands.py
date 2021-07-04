@@ -2,7 +2,7 @@ import os
 import click
 from .pulse import PulseInterface, LoadInfo
 from .pulse.exceptions import *
-from .ansi import *
+from . import pretty
 from importlib.metadata import version
 import importlib.resources
 import configparser
@@ -51,28 +51,10 @@ def rnnoise(ctx, verbose: bool):
     ctx.obj = CtxData(config, verbose)
 
 
-def list_devices_pretty() -> str:
-    """
-    Column printing based on https://stackoverflow.com/a/56002400/11520125
-    """
-    device_strings = [(
-        f"[{ANSI_COLOR_YELLOW}{d.index}{ANSI_STYLE_RESET}]",
-        f"{ANSI_COLOR_BLUE}{d.name}{ANSI_STYLE_RESET}",
-        d.description
-    ) for d in PulseInterface.get_input_devices()]
-    column_lens = []
-    for col in zip(*device_strings):
-        column_lens.append(max(len(val) for val in col))
-    fmt = f"{{:>{column_lens[0]}}}  {{:<{column_lens[1]}}}  {{:<{column_lens[2]}}}"
-    return "\n".join(fmt.format(*s) for s in device_strings)
-
-
 def prompt_device_pretty() -> str:
-    click.echo(list_devices_pretty())
+    click.echo(pretty.list_devices(PulseInterface.get_input_devices()))
     return click.prompt(
-        f"{ANSI_COLOR_YELLOW}Number{ANSI_STYLE_RESET} or "
-        f"{ANSI_COLOR_BLUE}name{ANSI_STYLE_RESET} "
-        f"of device to use",
+        pretty.DEVICE_PROMPT,
         default=PulseInterface.get_default_input_device().index,
         type=str
     )
@@ -116,6 +98,7 @@ def get_device_or_prompt(device: str = None):
             return get_device_or_prompt()
 
 
+# TODO: rate parameter is quite useless, better remove it
 @rnnoise.command()
 @click.option("--device", "-d", type=str,
               help="Input device name or number (see `rnnoise list`). Default: default input device.")
@@ -133,8 +116,7 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
     Activate the noise suppression plugin.
     """
     if PulseInterface.rnn_is_loaded():
-        if not click.confirm(f"{ANSI_COLOR_RED}RNNoise is already loaded.{ANSI_STYLE_RESET}\n"
-                             f"Continue anyway?"):
+        if not click.confirm(pretty.ALREADY_LOADED_CONFIRM):
             return
 
     activate_config = ctx.config["activate"]
@@ -160,10 +142,7 @@ def activate(ctx: CtxData, device: str, rate: int, control: int, prompt: bool, s
         rate = device.sample_spec.rate
 
     if ctx.verbose:
-        click.echo("Selected params:")
-        click.echo(f"\t{ANSI_UNDERLINE}Device name:{ANSI_STYLE_RESET} {device.name}")
-        click.echo(f"\t{ANSI_UNDERLINE}Sampling rate:{ANSI_STYLE_RESET} {rate}")
-        click.echo(f"\t{ANSI_UNDERLINE}Control level:{ANSI_STYLE_RESET} {control}")
+        click.echo(pretty.params(device, rate, control))
 
     PulseInterface.load_modules(device, control, ctx.verbose, set_default)
 
@@ -189,14 +168,10 @@ def deactivate(ctx: CtxData, force_unload_all: bool, force: bool):
             PulseInterface.unload_modules(verbose=ctx.verbose, force=force)
             click.secho("Deactivated!", fg="green")
         except RNNInUseException:
-            if click.confirm(f"{ANSI_COLOR_RED}The RNNoise input stream is in use, "
-                             f"unloading may cause applications to misbehave.{ANSI_STYLE_RESET}\n"
-                             f"Are you sure?"):
+            if click.confirm(pretty.STREAM_IN_USE_UNLOAD_CONFIRM):
                 PulseInterface.unload_modules(verbose=ctx.verbose, force=True)
         except NoLoadedModulesException:
-            click.secho(f"No loaded modules found (already deactivated?), "
-                        f"try {ANSI_UNDERLINE}--force-unload-all{ANSI_NO_UNDERLINE} if you are sure.",
-                        fg="red")
+            click.secho(pretty.NO_LOADED_MODULES, fg="red")
 
 
 @rnnoise.group(name="control")
@@ -232,9 +207,7 @@ def control_set(ctx: CtxData, control_level: int, force: bool, set_default: bool
     except NotActivatedException:
         click.secho("Plugin is not activated, cannot change control level.", fg="red")
     except RNNInUseException:
-        if click.confirm(f"{ANSI_COLOR_RED}The RNNoise input stream is in use, "
-                         f"changing control level may cause applications to misbehave.{ANSI_STYLE_RESET}\n"
-                         "Are you sure?"):
+        if click.confirm(pretty.STREAM_IN_USE_CONTROL_CONFIRM):
             PulseInterface.change_control_level(control_level, ctx.verbose, True, set_default)
 
 
@@ -243,7 +216,7 @@ def list_devices():
     """
     List available devices.
     """
-    click.echo(list_devices_pretty())
+    click.echo(pretty.list_devices(PulseInterface.get_input_devices()))
 
 
 @rnnoise.command(name="license")

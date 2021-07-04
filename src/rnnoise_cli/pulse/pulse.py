@@ -3,7 +3,7 @@ import contextlib
 import pickle
 import importlib.resources
 
-from ..ansi import ANSI_UNDERLINE, ANSI_STYLE_RESET
+from .. import pretty
 from .exceptions import *
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
@@ -23,8 +23,7 @@ class LoadInfo:
 
     @property
     def pretty(self) -> str:
-        return f"{ANSI_UNDERLINE}Device{ANSI_STYLE_RESET}:   {self.device.name}\n" \
-               f"{ANSI_UNDERLINE}Control{ANSI_STYLE_RESET}:  {self.control}"
+        return pretty.load_info(self)
 
     @classmethod
     def from_pickle(cls, pickle_path=LOADED_MODULES_PATH) -> 'LoadInfo':
