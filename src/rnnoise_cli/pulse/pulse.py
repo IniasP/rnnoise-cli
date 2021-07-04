@@ -3,7 +3,6 @@ import contextlib
 import pickle
 import importlib.resources
 
-from .. import pretty
 from .exceptions import *
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
@@ -20,10 +19,6 @@ class LoadInfo:
     device: Any
     control: int
     modules: Dict[str, int] = field(default_factory=dict)
-
-    @property
-    def pretty(self) -> str:
-        return pretty.load_info(self)
 
     @classmethod
     def from_pickle(cls, pickle_path=LOADED_MODULES_PATH) -> 'LoadInfo':

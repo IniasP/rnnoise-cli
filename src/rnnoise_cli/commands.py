@@ -224,7 +224,7 @@ def status():
     """
     if PulseInterface.rnn_is_loaded():
         click.secho("The plugin is loaded.", fg="green")
-        click.secho(LoadInfo.from_pickle().pretty)
+        click.secho(pretty.load_info(LoadInfo.from_pickle()))
     else:
         click.secho("The plugin is not loaded.", fg="red")
 
