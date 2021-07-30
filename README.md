@@ -68,8 +68,8 @@ make init
 ```
 
 ## Credits
-- Uses the plugin from: https://github.com/werman/noise-suppression-for-voice (the file `res/librnnoise_ladspa.so` is obtained from
+- Initially based on the work at https://github.com/josh-richardson/cadmus
+- Uses the plugin from https://github.com/werman/noise-suppression-for-voice (the file `res/librnnoise_ladspa.so` is obtained from
 the [noise-suppression-for-voice releases](https://github.com/werman/noise-suppression-for-voice/releases).
 )
-- The plugin above is in turn based on a recurrent neural network https://github.com/xiph/rnnoise
-- Initially based on the work at https://github.com/josh-richardson/cadmus
+- The plugin above is in turn based on a recurrent neural network: https://github.com/xiph/rnnoise
