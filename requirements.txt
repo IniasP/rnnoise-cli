@@ -1,5 +1,5 @@
 build==0.3.1.post1
-click==7.1.2
+click==8.0.3
 packaging==20.9
 pep517==0.10.0
 pulsectl==21.3.4
