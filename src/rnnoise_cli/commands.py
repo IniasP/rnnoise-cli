@@ -59,46 +59,27 @@ def prompt_device_pretty() -> str:
     )
 
 
-def get_device_or_default(device: str = None):
+def obtain_device(activate_config: configparser.SectionProxy, device_str: str, prompt: bool):
+    if device_str is None:
+        device_str = activate_config.get("device", None)
+    device = None if device_str is None else PulseInterface.get_source(device_str)
     if device is None:
-        return PulseInterface.get_default_input_device()
+        if prompt:
+            while True:
+                device_str = prompt_device_pretty()
+                device = PulseInterface.get_source(device_str)
+                if device is None:
+                    click.secho(f"Device not found: \"{device_str}\"", fg="red")
+                else:
+                    return device
+        else:
+            return PulseInterface.get_default_input_device()
     else:
-        try:
-            return PulseInterface.get_source_by_num(int(device))
-        except ValueError:
-            try:
-                return PulseInterface.get_source_by_name(device)
-            except ValueError:
-                return PulseInterface.get_default_input_device()
-
-
-def get_device_or_prompt(device: str = None):
-    if device is None:
-        device = prompt_device_pretty()
-    if device == "":
-        return PulseInterface.get_default_input_device()
-    try:
-        # device is a number
-        try:
-            # device is a valid number
-            return PulseInterface.get_source_by_num(int(device))
-        except ValueError:
-            # device is an invalid number
-            click.secho("Invalid device number.", fg="red")
-            return get_device_or_prompt()
-    except ValueError:
-        # device is a string
-        try:
-            # device is a valid string
-            return PulseInterface.get_source_by_name(device)
-        except ValueError:
-            # device is an invalid string
-            click.secho("Invalid device name.", fg="red")
-            return get_device_or_prompt()
+        return device
 
 
 @rnnoise.command()
-@click.option("--device", "-d", type=str,
+@click.option("--device", "-d", "device_str", type=str,
               help="Input device name or number (see `rnnoise list`). Default: default input device.")
 @click.option("--control", "-c", type=int,
               help="Control level between 0 and 100. Default: 50.")
@@ -107,7 +88,7 @@ def get_device_or_prompt(device: str = None):
 @click.option("--set-default/--no-set-default", default=True,
               help="Set the new RNNoise device as default device.")
 @click.pass_obj
-def activate(ctx: CtxData, device: str, control: int, prompt: bool, set_default: bool):
+def activate(ctx: CtxData, device_str: str, control: int, prompt: bool, set_default: bool):
     """
     Activate the noise suppression plugin.
     """
@@ -116,15 +97,10 @@ def activate(ctx: CtxData, device: str, control: int, prompt: bool, set_default:
             return
 
     activate_config = ctx.config["activate"]
-    if device is None:
-        device = activate_config.get("device", None)
     if control is None:
         control = activate_config.getint("control", None)
 
-    if prompt:
-        device = get_device_or_prompt(device)
-    else:
-        device = get_device_or_default(device)
+    device = obtain_device(activate_config, device_str, prompt)
 
     if control is None or not 0 <= control <= 100:
         control = 50

@@ -213,6 +213,16 @@ class PulseInterface:
         return cls.get_source_by_name(cls.pulse.server_info().default_source_name)
 
     @classmethod
+    def get_source(cls, identifier: str):
+        try:
+            return PulseInterface.get_source_by_num(int(identifier))
+        except ValueError:
+            try:
+                return PulseInterface.get_source_by_name(identifier)
+            except ValueError:
+                return None
+
+    @classmethod
     def get_source_by_name(cls, name: str):
         try:
             return cls.pulse.get_source_by_name(name)
