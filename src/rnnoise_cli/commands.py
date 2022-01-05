@@ -166,7 +166,7 @@ def deactivate(ctx: CtxData, force_unload_all: bool, force: bool):
 @click.pass_obj
 def control_(ctx: CtxData):
     """
-    Change the control level.
+    Subcommands to manage the control level.
     """
     pass
 
