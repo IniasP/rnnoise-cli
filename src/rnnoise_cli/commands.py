@@ -103,7 +103,7 @@ def get_device_or_prompt(device: str = None):
 @click.option("--control", "-c", type=int,
               help="Control level between 0 and 100. Default: 50.")
 @click.option("--prompt/--no-prompt", default=True,
-              help="When no device is configured, prompt or use default device immediately?")
+              help="When no device is configured or given, prompt or use default device immediately?")
 @click.option("--set-default/--no-set-default", default=True,
               help="Set the new RNNoise device as default device.")
 @click.pass_obj
