@@ -15,6 +15,22 @@ pip install rnnoise-cli
 
 Or install from source, see [development](#development).
 
+## Enabling shell completion
+
+The click library offers tab completion for bash, zsh and fish, but it's not installed automatically.
+
+If you downloaded the source, the [Makefile](Makefile) can generate the relevant scripts after installing (run `make help`).
+Otherwise, generate a script as follows:
+
+```bash
+_RNNOISE_COMPLETE=bash_source rnnoise > rnnoise_completion.sh
+```
+
+You can replace `bash_source` with `zsh_source` or `fish_source` for other shells.
+The generated script should be sourced from `.bashrc`/`.zshrc`/`~/.config/fish/completions/rnnoise.sh`.
+
+See [the click documentation](https://click.palletsprojects.com/en/8.0.x/shell-completion/) for more info.
+
 ## Usage
 
 ```bash
