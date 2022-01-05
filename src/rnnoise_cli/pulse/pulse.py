@@ -1,14 +1,14 @@
-import os
 import contextlib
-import pickle
 import importlib.resources
-
-from .exceptions import *
-from typing import List, Dict, Any
+import os
+import pickle
 from dataclasses import dataclass, field
+from typing import List, Dict, Any
 
 import click
 import pulsectl
+
+from .exceptions import *
 
 CACHE_PATH = os.path.join(os.environ["HOME"], ".cache", "rnnoise_cli")
 LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
