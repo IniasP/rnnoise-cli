@@ -1,4 +1,8 @@
 # ANSI escape sequences
+from typing import List
+
+from pulsectl import PulseSourceInfo
+
 from rnnoise_cli.pulse import LoadInfo
 
 ANSI_COLOR_GREEN = "\u001b[32m"
@@ -23,20 +27,20 @@ STREAM_IN_USE_CONTROL_CONFIRM = f"{ANSI_COLOR_RED}The RNNoise input stream is in
                                 "Are you sure?"
 
 
-def list_devices(devices):
+def list_devices(devices: List[PulseSourceInfo]):
     device_strings = [(
         f"[{ANSI_COLOR_YELLOW}{d.index}{ANSI_STYLE_RESET}]",
         f"{ANSI_COLOR_BLUE}{d.name}{ANSI_STYLE_RESET}",
         d.description
     ) for d in devices]
-    column_lens = []
+    column_lens: List[int] = []
     for col in zip(*device_strings):
         column_lens.append(max(len(val) for val in col))
     fmt = f"{{:>{column_lens[0]}}}  {{:<{column_lens[1]}}}  {{:<{column_lens[2]}}}"
     return "\n".join(fmt.format(*s) for s in device_strings)
 
 
-def params(device, control):
+def params(device: PulseSourceInfo, control: int):
     return f"\t{ANSI_UNDERLINE}Device{ANSI_STYLE_RESET}:         {device.name}\n" \
            f"\t{ANSI_UNDERLINE}Control level{ANSI_STYLE_RESET}:  {control}"
 

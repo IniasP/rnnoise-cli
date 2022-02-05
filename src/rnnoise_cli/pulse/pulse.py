@@ -16,7 +16,7 @@ LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
 
 @dataclass
 class LoadInfo:
-    device: Any
+    device: pulsectl.PulseSourceInfo
     control: int
     modules: Dict[str, int] = field(default_factory=dict)
 
@@ -56,7 +56,7 @@ class PulseInterface:
 
     @classmethod
     def load_modules(cls,
-                     device,
+                     device: pulsectl.PulseSourceInfo,
                      control: int,
                      verbose: bool = False,
                      set_default: bool = True) -> LoadInfo:
@@ -195,7 +195,7 @@ class PulseInterface:
                     cls.pulse.module_unload(index)
                     if verbose:
                         click.echo(f"Unloaded module {name} ({index}).")
-                except pulsectl.pulsectl.PulseOperationFailed:
+                except pulsectl.PulseOperationFailed:
                     # The module was already unloaded for some reason.
                     pass
 
@@ -205,7 +205,7 @@ class PulseInterface:
             pass
 
     @classmethod
-    def get_input_devices(cls) -> list:
+    def get_input_devices(cls) -> List[pulsectl.PulseSourceInfo]:
         return cls.pulse.source_list()
 
     @classmethod
@@ -223,7 +223,7 @@ class PulseInterface:
                 return None
 
     @classmethod
-    def get_source_by_name(cls, name: str):
+    def get_source_by_name(cls, name: str) -> pulsectl.PulseSourceInfo:
         try:
             return cls.pulse.get_source_by_name(name)
         except pulsectl.PulseIndexError:
