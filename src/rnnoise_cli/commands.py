@@ -30,7 +30,7 @@ class CtxData:
 @click.option("--verbose", "-v", is_flag=True,
               help="Print more.")
 @click.pass_context
-def rnnoise(ctx, verbose: bool):
+def rnnoise(ctx: click.Context, verbose: bool):
     config = configparser.ConfigParser()
     # load defaults
     config.read_dict(CONFIG_DEFAULTS)
