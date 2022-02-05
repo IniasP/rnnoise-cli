@@ -16,6 +16,11 @@ LOADED_MODULES_PATH = Path(CACHE_PATH) / "load_info.pickle"
 
 @dataclass
 class LoadInfo:
+    """
+    Info on a loaded configuration that can be used to unload it.
+    This is pickled to be able to remember it between invocations of the application.
+    It has to be checked, since the plugin can be unloaded outside this application, e.g. by rebooting.
+    """
     device: pulsectl.PulseSourceInfo
     control: int
     modules: Dict[str, int] = field(default_factory=dict)
@@ -23,8 +28,14 @@ class LoadInfo:
     @classmethod
     def from_pickle(cls, pickle_path: Path = LOADED_MODULES_PATH) -> 'LoadInfo':
         """
-        Raises FileNotFoundError if path doesn't exist
-        or ValueError if the file is invalid.
+        Args:
+            pickle_path:
+                Path to a pickle file.
+        Raises:
+            FileNotFoundError:
+                The path does not exist.
+            ValueError:
+                The file is invalid.
         """
         with open(pickle_path, "rb") as file:
             result = pickle.load(file)
@@ -34,6 +45,14 @@ class LoadInfo:
         return result
 
     def write_pickle(self, pickle_path: Path = LOADED_MODULES_PATH):
+        """
+        Args:
+            pickle_path:
+                Path to a pickle file.
+        Raises:
+            FileNotFoundError:
+                The path does not exist.
+        """
         pickle_path.parent.mkdir(parents=True, exist_ok=True)
         with open(LOADED_MODULES_PATH, 'wb') as file:
             pickle.dump(self, file, protocol=pickle.HIGHEST_PROTOCOL)
@@ -48,6 +67,9 @@ class PulseInterface:
 
     @staticmethod
     def cli_command(command: List[str]):
+        """
+        For calling `pactl` commands as you would on the command line.
+        """
         with contextlib.closing(pulsectl.connect_to_cli()) as s:
             for c in command:
                 s.write(c + "\n")
@@ -58,6 +80,16 @@ class PulseInterface:
                      control: int,
                      verbose: bool = False,
                      set_default: bool = True) -> LoadInfo:
+        """
+        Args:
+            device: Pulse source to use, e.g. as obtained by `PulseInterface.get_source_by_name()`.
+            control: Control level for the RNNoise plugin.
+            verbose: Whether to print extra stuff.
+            set_default: Whether to select the new denoised output as the default output.
+        Returns:
+            Info about what was loaded that can be used for unloading.
+            This is also pickled to the default location.
+        """
 
         loaded = cls.get_loaded_modules()
 
@@ -129,6 +161,9 @@ class PulseInterface:
 
     @staticmethod
     def get_loaded_modules() -> Dict[str, int]:
+        """
+        Get the loaded modules from the default pickle file.
+        """
         try:
             return LoadInfo.from_pickle().modules
         except (ValueError, FileNotFoundError):
@@ -136,6 +171,21 @@ class PulseInterface:
 
     @classmethod
     def change_control_level(cls, control: int, verbose: bool = False, force: bool = False, set_default: bool = False):
+        """
+        Change the control level on a loaded configuration.
+        I haven't found a stable way to do this without unloading and re-loading the module.
+        Args:
+            control:
+                The new control level.
+            verbose:
+                Whether to print extra stuff, passed to `unload_modules` and `load_modules`.
+            force:
+                Whether to continue even if it seems like an application is using the sink.
+                Because of the reloading, the sink will get removed and re-added
+                and most applications do not deal with that smoothly.
+            set_default:
+                Passed as the `set_default` argument to `load_modules`.
+        """
         not_activated_msg = "The plugin is not activated. Cannot change control level."
         if not cls.rnn_is_loaded():
             raise NotActivatedException(not_activated_msg)
@@ -155,7 +205,7 @@ class PulseInterface:
     @classmethod
     def streams_using_rnnoise(cls) -> bool:
         """
-        Whether some stream is using the rnnoise output.
+        Whether some stream is using the RNNoise output.
         """
         try:
             index = cls.get_source_by_name(cls.remap_source_name).index
@@ -163,22 +213,18 @@ class PulseInterface:
             return False
         return any(s.source == index for s in cls.pulse.source_output_list())
 
-    @staticmethod
-    def unload_modules_all():
-        LOADED_MODULES_PATH.unlink(missing_ok=True)
-        PulseInterface.cli_command(
-            [
-                "unload-module module-loopback",
-                "unload-module module-null-sink",
-                "unload-module module-ladspa-sink",
-                "unload-module module-remap-source",
-            ]
-        )
-
     @classmethod
     def unload_modules(cls, verbose: bool = False, force: bool = False):
         """
-        Raises PulseInterfaceException if `modules` is None and it doesn't find anything to unload.
+        Unloads all modules specified to be loaded in the default pickle file.
+        Args:
+            verbose:
+                Whether to print extra stuff.
+            force:
+                Whether to continue even if it seems like an application is using the sink.
+        Raises:
+            PulseInterfaceException:
+                `modules` is None and there is nothing to unload.
         """
         if not force and cls.streams_using_rnnoise():
             raise RNNInUseException("The RNNoise plugin is being used by some application. "
@@ -203,14 +249,31 @@ class PulseInterface:
 
     @classmethod
     def get_input_devices(cls) -> List[pulsectl.PulseSourceInfo]:
+        """
+        Returns:
+            A list of the available input devices.
+        """
         return cls.pulse.source_list()
 
     @classmethod
     def get_default_input_device(cls):
+        """
+        Returns:
+            The default input device.
+        """
         return cls.get_source_by_name(cls.pulse.server_info().default_source_name)
 
     @classmethod
     def get_source(cls, identifier: str):
+        """
+        Get a source by either its name or its number.
+        Args:
+            identifier:
+                A string containing either a pulse source's number or its name.
+        Returns:
+            The corresponding source if one with the given number or name exists.
+            Otherwise, `None`.
+        """
         try:
             return PulseInterface.get_source_by_num(int(identifier))
         except ValueError:
@@ -221,6 +284,16 @@ class PulseInterface:
 
     @classmethod
     def get_source_by_name(cls, name: str) -> pulsectl.PulseSourceInfo:
+        """
+        Get a source by its name.
+        Args:
+            name: The source name.
+        Returns:
+            The corresponding source.
+        Raises:
+            ValueError:
+                There is no source with this name.
+        """
         try:
             return cls.pulse.get_source_by_name(name)
         except pulsectl.PulseIndexError:
@@ -228,6 +301,16 @@ class PulseInterface:
 
     @classmethod
     def get_source_by_num(cls, num: int):
+        """
+        Get a source by its number.
+        Args:
+            num: The source number.
+        Returns:
+            The corresponding source.
+        Raises:
+            ValueError:
+                There is no source with this number.
+        """
         try:
             return next(s for s in cls.pulse.source_list() if s.index == num)
         except StopIteration:
@@ -237,10 +320,13 @@ class PulseInterface:
     def rnn_is_loaded(cls):
         """
         Check whether the plugin is loaded.
+        This checks whether the pickle file is present,
+        but also checks if the modules are actually loaded, as e.g. a reboot will reset pulse.
+        Returns:
+            Whether the plugin seems to be loaded.
         """
         if cls.get_loaded_modules():
             # Check if any of the modules are actually present
-            # e.g. after a reboot the pickle file may contain "activated" modules which were actually reset
             rnn_names = [cls.null_sink_name, cls.ladspa_sink_name,
                          cls.loopback_key, cls.remap_source_name]
             return any(s.name in rnn_names for s in cls.pulse.source_list())
