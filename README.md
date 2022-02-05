@@ -61,7 +61,7 @@ Example config with currently supported options:
 [activate]
 # device to use, omitted by default
 # `rnnoise activate` will prompt for it if omitted (and provide a list of options)
-device = "some.device.name"
+device = some.device.name
 # control level (0-100), 50 by default
 control = 50
 ```
