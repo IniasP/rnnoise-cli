@@ -143,7 +143,7 @@ class PulseInterface:
         remap_source_opts = (
             f"master={cls.null_sink_name}.monitor "
             f"source_name={cls.remap_source_name} "
-            "channels=1 "
+            f"channels={2 if stereo else 1} "
             "source_properties=\"device.description='RNNoise Denoised Microphone'\""
         )
         loaded[cls.remap_source_name] = cls.pulse.module_load(
