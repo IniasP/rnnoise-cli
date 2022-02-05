@@ -1,17 +1,17 @@
 import contextlib
 import importlib.resources
-import os
 import pickle
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from pathlib import Path
+from typing import List, Dict
 
 import click
 import pulsectl
 
 from .exceptions import *
 
-CACHE_PATH = os.path.join(os.environ["HOME"], ".cache", "rnnoise_cli")
-LOADED_MODULES_PATH = os.path.join(CACHE_PATH, "load_info.pickle")
+CACHE_PATH = Path.home() / ".cache" / "rnnoise_cli"
+LOADED_MODULES_PATH = Path(CACHE_PATH) / "load_info.pickle"
 
 
 @dataclass
@@ -21,7 +21,7 @@ class LoadInfo:
     modules: Dict[str, int] = field(default_factory=dict)
 
     @classmethod
-    def from_pickle(cls, pickle_path=LOADED_MODULES_PATH) -> 'LoadInfo':
+    def from_pickle(cls, pickle_path: Path = LOADED_MODULES_PATH) -> 'LoadInfo':
         """
         Raises FileNotFoundError if path doesn't exist
         or ValueError if the file is invalid.
@@ -33,10 +33,8 @@ class LoadInfo:
 
         return result
 
-    def write_pickle(self, pickle_path=LOADED_MODULES_PATH):
-        dirname = os.path.dirname(pickle_path)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
+    def write_pickle(self, pickle_path: Path = LOADED_MODULES_PATH):
+        pickle_path.parent.mkdir(parents=True, exist_ok=True)
         with open(LOADED_MODULES_PATH, 'wb') as file:
             pickle.dump(self, file, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -163,10 +161,7 @@ class PulseInterface:
 
     @staticmethod
     def unload_modules_all():
-        try:
-            os.remove(LOADED_MODULES_PATH)
-        except FileNotFoundError:
-            pass
+        LOADED_MODULES_PATH.unlink(missing_ok=True)
         PulseInterface.cli_command(
             [
                 "unload-module module-loopback",
@@ -199,10 +194,7 @@ class PulseInterface:
                     # The module was already unloaded for some reason.
                     pass
 
-        try:
-            os.remove(LOADED_MODULES_PATH)
-        except FileNotFoundError:
-            pass
+        LOADED_MODULES_PATH.unlink(missing_ok=True)
 
     @classmethod
     def get_input_devices(cls) -> List[pulsectl.PulseSourceInfo]:

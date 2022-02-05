@@ -1,13 +1,15 @@
-import os
+import configparser
+import importlib.resources
+from importlib.metadata import version
+from pathlib import Path
+
 import click
+
+from . import pretty
 from .pulse import PulseInterface, LoadInfo
 from .pulse.exceptions import *
-from . import pretty
-from importlib.metadata import version
-import importlib.resources
-import configparser
 
-CONFIG_FILE_PATH = os.path.join(os.environ["HOME"], ".config", "rnnoise_cli", "rnnoise_cli.conf")
+CONFIG_FILE_PATH = Path.home() / ".config" / "rnnoise_cli" / "rnnoise_cli.conf"
 
 CONFIG_DEFAULTS = {
     "activate": {
