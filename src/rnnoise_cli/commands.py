@@ -129,6 +129,7 @@ def deactivate(ctx: CtxData, force_unload_all: bool, force: bool):
 
 @rnnoise.group(name="control")
 @click.pass_obj
+# unused parameter `ctx` is crucial for click
 def control_(ctx: CtxData):
     """
     Subcommands to manage the control level.
