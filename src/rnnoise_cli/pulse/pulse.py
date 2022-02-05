@@ -130,7 +130,8 @@ class PulseInterface:
             f"sink={cls.ladspa_sink_name} "
             f"channels={2 if stereo else 1} "
             "source_dont_move=true "
-            "sink_dont_move=true"
+            "sink_dont_move=true "
+            "latency_msec=1"
         )
         loaded[cls.loopback_key] = cls.pulse.module_load(
             "module-loopback", loopback_opts)
