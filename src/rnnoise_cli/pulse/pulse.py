@@ -70,7 +70,8 @@ class PulseInterface:
             f"rate={mic_rate} "
             "sink_properties=\"device.description='RNNoise Denoised Sink'\""
         )
-        loaded[cls.null_sink_name] = cls.pulse.module_load("module-null-sink", null_sink_opts)
+        loaded[cls.null_sink_name] = cls.pulse.module_load(
+            "module-null-sink", null_sink_opts)
         if verbose:
             click.echo(f"Loaded module-null-sink {cls.null_sink_name} "
                        f"with index {loaded[cls.null_sink_name]} "
@@ -85,7 +86,8 @@ class PulseInterface:
                 f"control={control} "
                 "sink_properties=\"device.description='RNNoise Raw Input Sink'\""
             )
-        loaded[cls.ladspa_sink_name] = cls.pulse.module_load("module-ladspa-sink", ladspa_sink_opts)
+        loaded[cls.ladspa_sink_name] = cls.pulse.module_load(
+            "module-ladspa-sink", ladspa_sink_opts)
         if verbose:
             click.echo(f"Loaded module-ladspa-sink {cls.ladspa_sink_name} "
                        f"with index {loaded[cls.ladspa_sink_name]} "
@@ -98,7 +100,8 @@ class PulseInterface:
             "source_dont_move=true "
             "sink_dont_move=true"
         )
-        loaded[cls.loopback_key] = cls.pulse.module_load("module-loopback", loopback_opts)
+        loaded[cls.loopback_key] = cls.pulse.module_load(
+            "module-loopback", loopback_opts)
         if verbose:
             click.echo(f"Loaded module-loopback "
                        f"with index {loaded[cls.loopback_key]} "
@@ -110,7 +113,8 @@ class PulseInterface:
             "channels=1 "
             "source_properties=\"device.description='RNNoise Denoised Microphone'\""
         )
-        loaded[cls.remap_source_name] = cls.pulse.module_load("module-remap-source", remap_source_opts)
+        loaded[cls.remap_source_name] = cls.pulse.module_load(
+            "module-remap-source", remap_source_opts)
         if verbose:
             click.echo(f"Loaded module-remap-source {cls.remap_source_name} "
                        f"with index {loaded[cls.remap_source_name]} "
@@ -183,7 +187,8 @@ class PulseInterface:
         modules = cls.get_loaded_modules()
 
         if not modules:
-            raise NoLoadedModulesException("No modules loaded, cannot unload modules.")
+            raise NoLoadedModulesException(
+                "No modules loaded, cannot unload modules.")
         else:
             for name, index in modules.items():
                 try:
@@ -236,7 +241,8 @@ class PulseInterface:
         if cls.get_loaded_modules():
             # Check if any of the modules are actually present
             # e.g. after a reboot the pickle file may contain "activated" modules which were actually reset
-            rnn_names = [cls.null_sink_name, cls.ladspa_sink_name, cls.loopback_key, cls.remap_source_name]
+            rnn_names = [cls.null_sink_name, cls.ladspa_sink_name,
+                         cls.loopback_key, cls.remap_source_name]
             return any(s.name in rnn_names for s in cls.pulse.source_list())
         else:
             return False
