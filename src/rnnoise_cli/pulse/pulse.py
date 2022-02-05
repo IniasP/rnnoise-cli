@@ -213,6 +213,24 @@ class PulseInterface:
             return False
         return any(s.source == index for s in cls.pulse.source_output_list())
 
+    @staticmethod
+    def unload_modules_all():
+        """
+        Force unload by onloading all modules of the same types as those loaded by `load_modules`.
+        This is very aggressive and likely to remove other stuff if you are using anything beyond the default
+        pulseaudio setup.
+        Use with care!
+        """
+        LOADED_MODULES_PATH.unlink(missing_ok=True)
+        PulseInterface.cli_command(
+            [
+                "unload-module module-loopback",
+                "unload-module module-null-sink",
+                "unload-module module-ladspa-sink",
+                "unload-module module-remap-source",
+            ]
+        )
+
     @classmethod
     def unload_modules(cls, verbose: bool = False, force: bool = False):
         """
