@@ -19,26 +19,13 @@ CONFIG_DEFAULTS = {
 }
 
 
-class AliasedGroup(click.Group):
-    """
-    Courtesy of https://stackoverflow.com/a/53144555/11520125.
-    """
-
-    def get_command(self, ctx, cmd_name):
-        try:
-            cmd_name = ALIASES[cmd_name].name
-        except KeyError:
-            pass
-        return super().get_command(ctx, cmd_name)
-
-
 class CtxData:
     def __init__(self, config: configparser.ConfigParser, verbose: bool):
         self.config = config
         self.verbose = verbose
 
 
-@click.group(cls=AliasedGroup)
+@click.group()
 @click.version_option(version=version("rnnoise-cli"))
 @click.option("--verbose", "-v", is_flag=True,
               help="Print more.")
@@ -205,9 +192,3 @@ def status():
         click.secho(pretty.load_info(LoadInfo.from_pickle()))
     else:
         click.secho("The plugin is not loaded.", fg="red")
-
-
-ALIASES = {
-    "ls": list_devices,
-    "devices": list_devices
-}
