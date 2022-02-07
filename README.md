@@ -51,7 +51,7 @@ A new input option named "RNNoise Denoised Microphone" should now be available t
 
 Check out `rnnoise --help` for more commands.
 
-## Configure defaults
+## Configuring defaults
 
 Defaults are optionally loaded from `~/.config/rnnoise_cli/rnnoise_cli.conf`.
 These settings are overridden by the corresponding options when provided (e.g. `--device`, see `rnnoise --help`).
