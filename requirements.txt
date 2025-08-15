@@ -2,6 +2,6 @@ build==0.7.0
 click==8.0.3
 packaging==21.3
 pep517==0.12.0
-pulsectl==22.1.3
+pulsectl==22.3.2
 pyparsing==3.0.7
 toml==0.10.2
