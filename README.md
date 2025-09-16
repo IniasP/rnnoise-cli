@@ -1,10 +1,18 @@
 # rnnoise-cli
 
+> **⚠️ DEPRECATION NOTICE**
+>
+> This project is **deprecated** and should no longer be used. PipeWire has become the standard audio system on modern Linux distributions.
+>
+> For recommended PipeWire setups, check the [noise-suppression-for-voice documentation](https://github.com/werman/noise-suppression-for-voice#pipewire).
+> Since PipeWire is easier to configure, the bare PipeWire module filter chain should be easy enough to set up, without the use of a tool like `rnnoise-cli`.
+>
+> This project will not receive updates.
+
+---
+
 A CLI wrapper for the LADSPA plugin at https://github.com/werman/noise-suppression-for-voice.
 To be used with systems running PulseAudio (basically any Linux distro).
-This was written out of frustration that Discord+Krisp is unavailable on Linux.
-If you'd like a GUI alternative, check out [Cadmus](https://github.com/josh-richardson/cadmus)
-(as of May 2021, it has some issues and the developer seems to be MIA).
 
 ## Installation
 
